@@ -1,11 +1,11 @@
-use std::{fs, io};
-use std::any::Any;
-use std::error::Error;
-use std::io::{ErrorKind, Write};
+use std::{fs};
+
+
+use std::io::{Write};
 use std::path::Path;
 
 use config::{Config, ConfigError, File};
-use log::{debug, error};
+use log::{debug};
 use serde::{Deserialize, Serialize};
 
 use crate::errors::KafkyError;

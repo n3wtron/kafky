@@ -1,16 +1,8 @@
 use std::str::FromStr;
-use std::string::String;
 use std::sync::Arc;
-
 use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
-use log::{debug, error};
-use rdkafka::consumer::{BaseConsumer, Consumer, DefaultConsumerContext, StreamConsumer};
-use rdkafka::error::{KafkaError, KafkaResult};
-use rdkafka::Message;
-use rdkafka::message::BorrowedMessage;
-use strum_macros::EnumString;
-
-use crate::client::consumer::{KafkyConsumerMessage, KafkyConsumerOffset};
+use log::{error};
+use crate::client::consumer::{KafkyConsumerOffset};
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 use crate::KafkyCmd;

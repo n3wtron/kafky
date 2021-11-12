@@ -1,14 +1,14 @@
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+
 
 use rdkafka::ClientConfig;
 use rdkafka::config::RDKafkaLogLevel;
-use rdkafka::consumer::{BaseConsumer, Consumer};
+
 use rdkafka::error::KafkaError;
 use rdkafka::producer::BaseProducer;
-use rdkafka::util::Timeout;
 
-use crate::config::{KafkyConfig, KafkyCredentialKind, KafkyEnvironment, KafkyPEM};
+
+use crate::config::{KafkyConfig, KafkyCredentialKind, KafkyPEM};
 use crate::KafkyError;
 
 pub(crate) struct KafkyClient {

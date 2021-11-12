@@ -1,10 +1,8 @@
-use std::borrow::Borrow;
+use rdkafka::producer::{BaseRecord};
 
-use rdkafka::producer::{BaseProducer, BaseRecord, FutureProducer};
-use tokio::sync::mpsc::Receiver;
 
 use crate::{KafkyClient, KafkyError};
-use crate::KafkyError::KafkaError;
+
 
 impl KafkyClient {
     pub fn produce(&self, topic: &str, key: Option<String>, payload: String) -> Result<(), KafkyError> {

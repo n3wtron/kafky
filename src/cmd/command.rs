@@ -1,5 +1,5 @@
 use std::ffi::OsString;
-use std::sync::Arc;
+
 
 use clap::{App, Arg};
 use gethostname::gethostname;
@@ -11,7 +11,6 @@ pub(crate) struct KafkyCmd {
 }
 
 impl<'a> KafkyCmd {
-
     pub fn new() -> Result<Self, KafkyError> {
         Ok(Self {
             hostname: gethostname(),

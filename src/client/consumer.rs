@@ -1,15 +1,9 @@
-use std::fmt;
-use std::fmt::Formatter;
-use std::str::Utf8Error;
-
 use log::debug;
 use rdkafka::consumer::{BaseConsumer, Consumer};
 use rdkafka::Message;
-use rdkafka::producer::{BaseProducer, BaseRecord, FutureProducer};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use strum_macros;
-use tokio::sync::mpsc::Receiver;
 
 use crate::{KafkyClient, KafkyError};
 
@@ -49,7 +43,7 @@ impl<'a> KafkyConsumerOffset {
 }
 
 impl KafkyClient {
-    pub(crate) fn consume(&self, topics: Vec<&str>, consumer_group: &str, offset: KafkyConsumerOffset, message_consumer: fn(Result<KafkyConsumerMessage,KafkyError>) -> ()) -> Result<(), KafkyError> {
+    pub(crate) fn consume(&self, topics: Vec<&str>, consumer_group: &str, offset: KafkyConsumerOffset, message_consumer: fn(Result<KafkyConsumerMessage, KafkyError>) -> ()) -> Result<(), KafkyError> {
         let mut consumer_builder = self.config_builder();
         consumer_builder
             .set("group.id", consumer_group)
