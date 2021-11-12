@@ -23,5 +23,3 @@ pub enum KafkyError {
     #[error("Error creating sample config: {0}")]
     CannotCreateSampleConfig(String),
 }
-
-

@@ -13,13 +13,19 @@ impl KafkyCmd {
     pub fn produce_sub_command<'a>(&self) -> App<'a, 'a> {
         SubCommand::with_name("produce")
             .about("Produce messages to a topic")
-            .arg(Arg::with_name("topic")
-                .short("t")
-                .long("topic")
-                .required(true)
-                .value_name("TOPIC_NAME"))
+            .arg(
+                Arg::with_name("topic")
+                    .short("t")
+                    .long("topic")
+                    .required(true)
+                    .value_name("TOPIC_NAME"),
+            )
     }
-    pub fn produce_exec(&self, app_matches: &ArgMatches, kafky_client: Arc<KafkyClient>) -> Result<(), KafkyError> {
+    pub fn produce_exec(
+        &self,
+        app_matches: &ArgMatches,
+        kafky_client: Arc<KafkyClient>,
+    ) -> Result<(), KafkyError> {
         let topic = app_matches.value_of("topic").unwrap();
 
         let mut read_line = String::new();
@@ -33,7 +39,9 @@ impl KafkyCmd {
                     }
                     read_line.pop();
                     match kafky_client.produce(&topic, None, read_line.clone()) {
-                        Ok(_) => { debug!("message sent to topic {}",topic) }
+                        Ok(_) => {
+                            debug!("message sent to topic {}", topic)
+                        }
                         Err(error) => {
                             return Err(error);
                         }
@@ -47,4 +55,3 @@ impl KafkyCmd {
         Ok(())
     }
 }
-

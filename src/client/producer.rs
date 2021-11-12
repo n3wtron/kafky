@@ -1,11 +1,14 @@
-use rdkafka::producer::{BaseRecord};
-
+use rdkafka::producer::BaseRecord;
 
 use crate::{KafkyClient, KafkyError};
 
-
 impl KafkyClient {
-    pub fn produce(&self, topic: &str, key: Option<String>, payload: String) -> Result<(), KafkyError> {
+    pub fn produce(
+        &self,
+        topic: &str,
+        key: Option<String>,
+        payload: String,
+    ) -> Result<(), KafkyError> {
         let producer = self.get_producer()?;
         let mut record: BaseRecord<String, String> = BaseRecord::to(topic);
         if key.is_some() {
