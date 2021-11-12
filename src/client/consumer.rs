@@ -1,15 +1,17 @@
 use std::fmt;
 use std::fmt::Formatter;
 use std::str::Utf8Error;
+
 use log::debug;
 use rdkafka::consumer::{BaseConsumer, Consumer};
 use rdkafka::Message;
 use rdkafka::producer::{BaseProducer, BaseRecord, FutureProducer};
-use tokio::sync::mpsc::Receiver;
-use crate::{KafkyClient, KafkyError};
-use strum_macros::{EnumIter, EnumString, Display, IntoStaticStr};
-use strum_macros;
 use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+use strum_macros;
+use tokio::sync::mpsc::Receiver;
+
+use crate::{KafkyClient, KafkyError};
 
 #[derive(Debug)]
 pub(crate) struct KafkyConsumerMessage {
@@ -47,7 +49,7 @@ impl<'a> KafkyConsumerOffset {
 }
 
 impl KafkyClient {
-    pub(crate) fn consume(&self, topics: Vec<&str>, consumer_group: &str, offset: KafkyConsumerOffset, message_consumer: fn(KafkyConsumerMessage) -> ()) -> Result<(), KafkyError> {
+    pub(crate) fn consume(&self, topics: Vec<&str>, consumer_group: &str, offset: KafkyConsumerOffset, message_consumer: fn(Result<KafkyConsumerMessage,KafkyError>) -> ()) -> Result<(), KafkyError> {
         let mut consumer_builder = self.config_builder();
         consumer_builder
             .set("group.id", consumer_group)
@@ -62,7 +64,7 @@ impl KafkyClient {
 
         for kafky_msg in consumer.iter().map(|message_result| {
             match message_result {
-                Ok(m) => unsafe {
+                Ok(m) => {
                     let payload = match m.payload_view::<str>() {
                         None => "",
                         Some(Ok(s)) => s,
@@ -81,13 +83,15 @@ impl KafkyClient {
                         }
                     };
 
-                    KafkyConsumerMessage {
+                    Ok(KafkyConsumerMessage {
                         key,
                         payload: payload.to_string(),
                         partition: m.partition(),
-                    }
+                    })
                 }
-                Err(err) => { KafkyConsumerMessage { key: None, payload: "error".to_string(), partition: -1 } }
+                Err(err) => {
+                    return Err(err.into());
+                }
             }
         }) {
             message_consumer(kafky_msg)

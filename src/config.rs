@@ -1,15 +1,23 @@
-use config::{Config, ConfigError, File};
-use crate::errors::KafkyError;
-use serde::Deserialize;
+use std::{fs, io};
+use std::any::Any;
+use std::error::Error;
+use std::io::{ErrorKind, Write};
+use std::path::Path;
 
-#[derive(Debug, Deserialize)]
+use config::{Config, ConfigError, File};
+use log::{debug, error};
+use serde::{Deserialize, Serialize};
+
+use crate::errors::KafkyError;
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyPrivateKey {
     #[serde(flatten)]
     pub key: KafkyPEM,
     pub password: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum KafkyPEM {
     PATH(String),
@@ -17,7 +25,7 @@ pub enum KafkyPEM {
     PEM(String),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct KafkySSLCredential {
     pub truststore: KafkyPEM,
     pub certificate: KafkyPEM,
@@ -25,21 +33,28 @@ pub struct KafkySSLCredential {
     pub private_key: KafkyPrivateKey,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum KafkyCredentialKind {
-    SSL(KafkySSLCredential),
-    PLAIN,
+#[derive(Debug, Deserialize, Serialize)]
+pub struct KafkyPlainCredential {
+    pub username: String,
+    pub password: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum KafkyCredentialKind {
+    SSL(KafkySSLCredential),
+    PLAIN(KafkyPlainCredential),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyCredential {
     pub name: String,
     #[serde(flatten)]
     pub credential: KafkyCredentialKind,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyEnvironment {
     pub name: String,
     pub brokers: Vec<String>,
@@ -48,7 +63,7 @@ pub struct KafkyEnvironment {
 
 
 impl KafkyEnvironment {
-    pub fn get_credential(&self, credential:&String) -> Option<&KafkyCredential> {
+    pub fn get_credential(&self, credential: &String) -> Option<&KafkyCredential> {
         self.credentials.iter().find(|c| c.name.eq(credential))
     }
 
@@ -58,7 +73,7 @@ impl KafkyEnvironment {
 }
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyConfig {
     pub environments: Vec<KafkyEnvironment>,
 }
@@ -70,8 +85,12 @@ impl From<ConfigError> for KafkyError {
 }
 
 impl KafkyConfig {
-    pub fn new(config_file: &str) -> Result<Self, KafkyError> {
+    pub fn load(config_file: &str) -> Result<Self, KafkyError> {
+        if !Path::new(config_file).exists() {
+            return Err(KafkyError::ConfigurationNotFound(config_file.to_string()));
+        }
         let mut cfg = Config::default();
+        debug!("loading configuration {}",&config_file);
         cfg.merge(File::with_name(config_file))?;
 
         cfg.try_into().map_err(|e| e.into())
@@ -84,4 +103,43 @@ impl KafkyConfig {
     pub fn get_environment_names(&self) -> Vec<String> {
         self.environments.iter().map(|e| e.name.clone()).collect()
     }
+}
+
+pub(crate) fn create_sample(config_file_path: &str) -> Result<(), KafkyError> {
+    let env = KafkyEnvironment {
+        name: "sample-env".to_string(),
+        brokers: vec!["localhost:9094".to_string()],
+        credentials: vec![
+            KafkyCredential {
+                name: "plain-cred".to_string(),
+                credential: KafkyCredentialKind::PLAIN(KafkyPlainCredential {
+                    username: "kafka-user".to_string(),
+                    password: "kafka-password".to_string(),
+                }),
+            },
+            KafkyCredential {
+                name: "ssl-cred".to_string(),
+                credential: KafkyCredentialKind::SSL(KafkySSLCredential {
+                    truststore: KafkyPEM::PEM("-----BEGIN CERTIFICATE-----\
+                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
+                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
+                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
+                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
+                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
+                    -----END CERTIFICATE-----\
+                    ".to_string()),
+                    certificate: KafkyPEM::PATH("/my.cert.pem".to_string()),
+                    private_key: KafkyPrivateKey {
+                        key: KafkyPEM::BASE64("bXkgcHJpdmF0ZSBrZXk=".to_string()),
+                        password: Some("my-cert-password".to_string()),
+                    },
+                }),
+            },
+        ],
+    };
+    let config = KafkyConfig { environments: vec![env] };
+    let mut config_file = fs::File::create(config_file_path).map_err(|e| KafkyError::CannotCreateSampleConfig(format!("{}", e)))?;
+    let yaml = serde_yaml::to_string(&config).unwrap();
+    config_file.write(yaml.as_ref()).map_err(|e| KafkyError::CannotCreateSampleConfig(format!("{}", e)))?;
+    Ok(())
 }

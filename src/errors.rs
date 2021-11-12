@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum KafkyError {
     #[error("home folder not found")]
     HomeFolderNotFound(),
+    #[error("Configuration not found: {0}")]
+    ConfigurationNotFound(String),
     #[error("Invalid configuration {0}")]
     InvalidConfiguration(String),
     #[error("Environment not found {0}, available environment {1}")]
@@ -18,6 +20,8 @@ pub enum KafkyError {
     InvalidCommand(),
     #[error("Invalid offset")]
     InvalidOffset(),
+    #[error("Error creating sample config: {0}")]
+    CannotCreateSampleConfig(String),
 }
 
 

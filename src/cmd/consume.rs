@@ -1,26 +1,21 @@
-use std::ffi::{OsStr, OsString};
-use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
-use std::sync::Arc;
-use std::io;
-use std::io::Write;
-use std::process::Command;
-use std::rc::Rc;
+use std::str::FromStr;
 use std::string::String;
-use log::debug;
+use std::sync::Arc;
+
+use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
+use log::{debug, error};
 use rdkafka::consumer::{BaseConsumer, Consumer, DefaultConsumerContext, StreamConsumer};
 use rdkafka::error::{KafkaError, KafkaResult};
 use rdkafka::Message;
 use rdkafka::message::BorrowedMessage;
-use crate::client::consumer::KafkyConsumerOffset;
+use strum_macros::EnumString;
+
+use crate::client::consumer::{KafkyConsumerMessage, KafkyConsumerOffset};
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
-use strum::IntoEnumIterator;
-use std::str::FromStr;
-use strum_macros::EnumString;
 use crate::KafkyCmd;
 
 impl KafkyCmd {
-
     pub fn consume_sub_command(&self) -> App {
         let offset_values: Vec<&str> = KafkyConsumerOffset::values_str();
         let offset_args: Vec<Arg> = KafkyConsumerOffset::values_str().iter()
@@ -46,7 +41,6 @@ impl KafkyCmd {
                 .required(true)
                 .args(offset_values.as_slice())
             )
-
     }
 
 
@@ -54,8 +48,11 @@ impl KafkyCmd {
         let topics: Vec<&str> = app_matches.values_of("topic").unwrap().collect();
         let consumer_group = app_matches.value_of("consumerGroup").unwrap();
         let offset = KafkyCmd::extract_offset_from_arg(app_matches)?;
-        kafky_client.consume(topics, consumer_group, offset, |msg| {
-            println!("{:?}", msg)
+        kafky_client.consume(topics, consumer_group, offset, |msg_result| {
+            match msg_result {
+                Ok(msg) => { println!("{:?}", msg) }
+                Err(err) => { error!("error: {:?}",err) }
+            }
         })
     }
 

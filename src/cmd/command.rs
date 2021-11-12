@@ -1,7 +1,9 @@
 use std::ffi::OsString;
 use std::sync::Arc;
+
 use clap::{App, Arg};
 use gethostname::gethostname;
+
 use crate::KafkyError;
 
 pub(crate) struct KafkyCmd {

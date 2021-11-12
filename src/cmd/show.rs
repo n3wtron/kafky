@@ -1,9 +1,10 @@
-use clap::{App, ArgMatches, SubCommand};
 use std::sync::Arc;
+
+use clap::{App, ArgMatches, SubCommand};
+
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 use crate::KafkyCmd;
-
 
 impl KafkyCmd {
     pub fn show_sub_command<'a>(&self) -> App<'a, 'a> {

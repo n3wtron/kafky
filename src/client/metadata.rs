@@ -1,7 +1,9 @@
 use std::fmt::format;
 use std::time::Duration;
+
 use rdkafka::consumer::{BaseConsumer, Consumer};
 use rdkafka::util::Timeout;
+
 use crate::{KafkyClient, KafkyError};
 
 #[derive(Debug)]
