@@ -17,8 +17,7 @@ mod cmd;
 mod config;
 mod errors;
 
-#[tokio::main]
-async fn main() -> Result<(), errors::KafkyError> {
+fn main() -> Result<(), errors::KafkyError> {
     env_logger::init();
 
     let mut home_folder = home::home_dir()
@@ -36,13 +35,13 @@ async fn main() -> Result<(), errors::KafkyError> {
         },
     }?;
 
-    let command = KafkyCmd::new()?;
+    let command = KafkyCmd::new(&cfg)?;
     let app = command.create_command();
     let app_matches = app.get_matches();
 
     let environment = String::from(app_matches.value_of("environment").unwrap());
     let credential = extract_credential(&app_matches, &cfg, &environment)?;
-    let kafky_client = Arc::new(KafkyClient::new(cfg, environment, credential));
+    let kafky_client = Arc::new(KafkyClient::new(&cfg, environment, credential));
 
     match app_matches.subcommand() {
         ("show", Some(matches)) => command.show_exec(matches, kafky_client.clone()),

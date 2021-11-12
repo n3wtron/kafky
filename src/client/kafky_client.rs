@@ -1,29 +1,22 @@
 use std::sync::{Arc, Mutex};
 
+use log::debug;
 use rdkafka::config::RDKafkaLogLevel;
-use rdkafka::ClientConfig;
-
-use rdkafka::error::KafkaError;
 use rdkafka::producer::BaseProducer;
+use rdkafka::ClientConfig;
 
 use crate::config::{KafkyConfig, KafkyCredentialKind, KafkyPEM};
 use crate::KafkyError;
 
-pub(crate) struct KafkyClient {
-    kafky_config: KafkyConfig,
+pub(crate) struct KafkyClient<'a> {
+    kafky_config: &'a KafkyConfig,
     environment: String,
     credential: String,
     producer: Mutex<Option<Arc<BaseProducer>>>,
 }
 
-impl From<KafkaError> for KafkyError {
-    fn from(kafka_error: KafkaError) -> Self {
-        KafkyError::KafkaError(kafka_error.to_string())
-    }
-}
-
-impl<'a> KafkyClient {
-    pub fn new(config: KafkyConfig, environment: String, credential: String) -> Self {
+impl<'a> KafkyClient<'a> {
+    pub fn new(config: &'a KafkyConfig, environment: String, credential: String) -> Self {
         KafkyClient {
             kafky_config: config,
             environment,
@@ -54,7 +47,7 @@ impl<'a> KafkyClient {
         let mut client_config_builder = ClientConfig::new();
         client_config_builder.set("bootstrap.servers", brokers);
         client_config_builder.set_log_level(RDKafkaLogLevel::Debug);
-        println!("{:?}", client_config_builder);
+        debug!("{:?}", client_config_builder);
 
         match &credential.credential {
             KafkyCredentialKind::SSL(ssl_cred) => {

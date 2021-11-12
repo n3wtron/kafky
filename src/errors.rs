@@ -1,3 +1,5 @@
+use config::ConfigError;
+use rdkafka::error::KafkaError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -22,4 +24,26 @@ pub enum KafkyError {
     InvalidOffset(),
     #[error("Error creating sample config: {0}")]
     CannotCreateSampleConfig(String),
+    #[error("Topic not found: {0}")]
+    TopicNotFound(String),
+    #[error("Invalid json: {0}")]
+    InvalidJson(String),
+}
+
+impl From<KafkaError> for KafkyError {
+    fn from(kafka_error: KafkaError) -> Self {
+        KafkyError::KafkaError(kafka_error.to_string())
+    }
+}
+
+impl From<ConfigError> for KafkyError {
+    fn from(cfg_error: ConfigError) -> Self {
+        KafkyError::InvalidConfiguration(cfg_error.to_string())
+    }
+}
+
+impl From<serde_json::Error> for KafkyError {
+    fn from(json_error: serde_json::Error) -> Self {
+        KafkyError::InvalidJson(json_error.to_string())
+    }
 }

@@ -2,7 +2,7 @@ use rdkafka::producer::BaseRecord;
 
 use crate::{KafkyClient, KafkyError};
 
-impl KafkyClient {
+impl<'a> KafkyClient<'a> {
     pub fn produce(
         &self,
         topic: &str,

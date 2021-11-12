@@ -6,8 +6,8 @@ use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 use crate::KafkyCmd;
 
-impl KafkyCmd {
-    pub fn show_sub_command<'a>(&self) -> App<'a, 'a> {
+impl<'a> KafkyCmd<'a> {
+    pub fn show_sub_command(&self) -> App<'a, 'a> {
         SubCommand::with_name("show")
             .about("Show kafka information")
             .subcommand(SubCommand::with_name("topics").about("retrieve kafka topic names"))

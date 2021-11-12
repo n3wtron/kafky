@@ -1,13 +1,14 @@
-use log::debug;
+use log::{debug, error, info};
 use rdkafka::consumer::{BaseConsumer, Consumer};
 use rdkafka::Message;
+use serde::Serialize;
 use strum::IntoEnumIterator;
 use strum_macros;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
 use crate::{KafkyClient, KafkyError};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct KafkyConsumerMessage {
     pub key: Option<String>,
     pub payload: String,
@@ -42,29 +43,33 @@ impl<'a> KafkyConsumerOffset {
     }
 }
 
-impl KafkyClient {
-    pub(crate) fn consume(
+#[derive(Debug)]
+pub(crate) struct KafkyConsumeProperties<'a> {
+    pub topics: Vec<&'a str>,
+    pub consumer_group: &'a str,
+    pub offset: KafkyConsumerOffset,
+    pub auto_commit: bool,
+}
+
+impl<'a> KafkyClient<'a> {
+    pub(crate) fn consume<F: Fn(Result<KafkyConsumerMessage, KafkyError>) -> ()>(
         &self,
-        topics: Vec<&str>,
-        consumer_group: &str,
-        offset: KafkyConsumerOffset,
-        message_consumer: fn(Result<KafkyConsumerMessage, KafkyError>) -> (),
+        properties: &'a KafkyConsumeProperties,
+        message_consumer: F,
     ) -> Result<(), KafkyError> {
         let mut consumer_builder = self.config_builder();
         consumer_builder
-            .set("group.id", consumer_group)
-            .set("enable.auto.commit", "true")
+            .set("group.id", properties.consumer_group)
+            .set("enable.auto.commit", properties.auto_commit.to_string())
             .set("session.timeout.ms", "6000")
-            .set("auto.offset.reset", offset.to_string());
+            .set("auto.offset.reset", properties.offset.to_string());
 
         debug!("Consumer properties: {:?}", &consumer_builder);
         let consumer: BaseConsumer = consumer_builder.create()?;
-        consumer.subscribe(&topics).expect("subscribe error");
-        println!(
-            "subscribed to {} with consumer group:{}",
-            topics.join(","),
-            consumer_group
-        );
+        consumer
+            .subscribe(&properties.topics)
+            .expect("subscribe error");
+        info!("subscription properties {:?}", properties);
 
         for kafky_msg in consumer.iter().map(|message_result| match message_result {
             Ok(m) => {
@@ -72,7 +77,7 @@ impl KafkyClient {
                     None => "",
                     Some(Ok(s)) => s,
                     Some(Err(e)) => {
-                        println!("Error while deserializing message payload: {:?}", e);
+                        error!("Error while deserializing message payload: {:?}", e);
                         ""
                     }
                 };
@@ -81,7 +86,7 @@ impl KafkyClient {
                     None => None,
                     Some(Ok(s)) => Some(s.to_string()),
                     Some(Err(e)) => {
-                        println!("Error while deserializing message key: {:?}", e);
+                        error!("Error while deserializing message key: {:?}", e);
                         None
                     }
                 };

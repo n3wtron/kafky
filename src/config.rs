@@ -3,7 +3,7 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
-use config::{Config, ConfigError, File};
+use config::{Config, File};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +40,6 @@ pub struct KafkyPlainCredential {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-#[serde(untagged)]
 pub enum KafkyCredentialKind {
     SSL(KafkySSLCredential),
     PLAIN(KafkyPlainCredential),
@@ -73,12 +72,6 @@ impl KafkyEnvironment {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyConfig {
     pub environments: Vec<KafkyEnvironment>,
-}
-
-impl From<ConfigError> for KafkyError {
-    fn from(cfg_error: ConfigError) -> Self {
-        KafkyError::InvalidConfiguration(cfg_error.to_string())
-    }
 }
 
 impl KafkyConfig {

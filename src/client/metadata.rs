@@ -11,7 +11,7 @@ pub(crate) struct Metadata {
     pub brokers: Vec<String>,
 }
 
-impl KafkyClient {
+impl<'a> KafkyClient<'a> {
     pub fn get_metadata(&self, topic: Option<&str>) -> Result<Metadata, KafkyError> {
         let client_config_builder = self.config_builder();
         let consumer: BaseConsumer = client_config_builder.create()?;
