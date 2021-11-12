@@ -71,7 +71,7 @@ impl<'a> KafkyCmd<'a> {
                             println!(
                                 "{}{}{}",
                                 msg.key.unwrap_or("null".to_string()),
-                                app_matches.value_of("key_separator").unwrap(),
+                                app_matches.value_of("key-separator").unwrap(),
                                 msg.payload
                             )
                         } else {

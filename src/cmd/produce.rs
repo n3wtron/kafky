@@ -8,6 +8,7 @@ use log::debug;
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 use crate::KafkyCmd;
+use std::option::Option;
 
 impl<'a> KafkyCmd<'a> {
     pub fn produce_sub_command(&self) -> App<'a, 'a> {
@@ -19,6 +20,13 @@ impl<'a> KafkyCmd<'a> {
                     .long("topic")
                     .required(true)
                     .value_name("TOPIC_NAME"),
+            )
+            .arg(
+                Arg::with_name("key-separator")
+                    .long("key-separator")
+                    .conflicts_with("json")
+                    .short("k")
+                    .takes_value(true),
             )
     }
     pub fn produce_exec(
@@ -32,6 +40,9 @@ impl<'a> KafkyCmd<'a> {
             return Err(KafkyError::TopicNotFound(topic.to_string()));
         }
         let mut read_line = String::new();
+        let mut payload: &str;
+        let mut key: Option<String>;
+
         loop {
             print!("{}> ", topic);
             io::stdout().flush().unwrap();
@@ -41,7 +52,17 @@ impl<'a> KafkyCmd<'a> {
                         break;
                     }
                     read_line.pop();
-                    match kafky_client.produce(&topic, None, read_line.clone()) {
+
+                    if let Some(key_separator) = app_matches.value_of("key-separator") {
+                        let key_payload: Vec<&str> = read_line.split(key_separator).collect();
+                        payload = key_payload.get(1).unwrap();
+                        key = key_payload.get(0).map(|s|s.to_string());
+                    } else {
+                        key = None;
+                        payload = &read_line;
+                    }
+
+                    match kafky_client.produce(&topic, key, payload.to_string()) {
                         Ok(_) => {
                             debug!("message sent to topic {}", topic)
                         }
