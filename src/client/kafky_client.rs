@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 use rdkafka::config::RDKafkaLogLevel;
+use rdkafka::consumer::BaseConsumer;
 use rdkafka::producer::BaseProducer;
 use rdkafka::ClientConfig;
 
@@ -13,6 +14,7 @@ pub(crate) struct KafkyClient<'a> {
     environment: String,
     credential: String,
     producer: Mutex<Option<Arc<BaseProducer>>>,
+    util_consumer: Mutex<Option<Arc<BaseConsumer>>>,
 }
 
 impl<'a> KafkyClient<'a> {
@@ -22,6 +24,7 @@ impl<'a> KafkyClient<'a> {
             environment,
             credential,
             producer: Mutex::new(None),
+            util_consumer: Mutex::new(None),
         }
     }
 
@@ -130,6 +133,19 @@ impl<'a> KafkyClient<'a> {
                 Ok(producer)
             }
             Some(producer) => Ok(producer.clone()),
+        }
+    }
+
+    pub(crate) fn get_util_consumer(&self) -> Result<Arc<BaseConsumer>, KafkyError> {
+        let mut mtx_consumer = self.util_consumer.lock().unwrap();
+        let util_consumer = (*mtx_consumer).as_ref();
+        match util_consumer {
+            None => {
+                let consumer: Arc<BaseConsumer> = Arc::new(self.config_builder().create()?);
+                *mtx_consumer = Some(consumer.clone());
+                Ok(consumer)
+            }
+            Some(consumer) => Ok(consumer.clone()),
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use rdkafka::consumer::{BaseConsumer, Consumer};
+use rdkafka::consumer::Consumer;
 use rdkafka::util::Timeout;
 
 use crate::{KafkyClient, KafkyError};
@@ -13,8 +13,7 @@ pub(crate) struct KafkyMetadata {
 
 impl<'a> KafkyClient<'a> {
     pub fn get_metadata(&self, topic: Option<&str>) -> Result<KafkyMetadata, KafkyError> {
-        let client_config_builder = self.config_builder();
-        let consumer: BaseConsumer = client_config_builder.create()?;
+        let consumer = self.get_util_consumer()?;
         let metadata_response =
             consumer.fetch_metadata(topic, Timeout::from(Duration::from_millis(30000)))?;
 
