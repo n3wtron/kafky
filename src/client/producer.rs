@@ -1,3 +1,4 @@
+use log::debug;
 use rdkafka::producer::BaseRecord;
 
 use crate::{KafkyClient, KafkyError};
@@ -9,6 +10,12 @@ impl<'a> KafkyClient<'a> {
         key: Option<String>,
         payload: String,
     ) -> Result<(), KafkyError> {
+        debug!(
+            "sending message to {}, key:{:?}, payload:{}",
+            &topic,
+            &key,
+            &payload
+        );
         let producer = self.get_producer()?;
         let mut record: BaseRecord<String, String> = BaseRecord::to(topic);
         if key.is_some() {

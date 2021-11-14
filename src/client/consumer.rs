@@ -1,8 +1,10 @@
+use chrono::{DateTime, TimeZone, Utc};
 use log::{debug, error, info};
 use rdkafka::consumer::{BaseConsumer, Consumer};
+use rdkafka::error::KafkaError;
 use rdkafka::message::FromBytes;
-use rdkafka::Message;
-use serde::Serialize;
+use rdkafka::{Message, Timestamp};
+use serde::{Serialize, Serializer};
 use std::time::{Duration, Instant};
 use strum::IntoEnumIterator;
 use strum_macros;
@@ -10,11 +12,46 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
 use crate::{KafkyClient, KafkyError};
 
+
+pub fn serialize_dt<S>(
+    dt: &Option<DateTime<Utc>>,
+    serializer: S
+) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer {
+    match dt {
+        Some(dt) => serializer.serialize_str(&dt.to_rfc3339()),
+        _ => unreachable!(),
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct KafkyConsumerMessage<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> {
-    pub key: Option<&'a K>,
-    pub payload: &'a P,
-    pub partition: i32,
+    key: Option<&'a K>,
+    payload: &'a P,
+    partition: i32,
+    offset: i64,
+    #[serde(serialize_with = "serialize_dt", skip_serializing_if  = "Option::is_none")]
+    creation_time: Option<DateTime<Utc>>,
+}
+
+impl<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> KafkyConsumerMessage<'a, K, P> {
+    pub fn key(&self) -> Option<&'a K> {
+        self.key
+    }
+    pub fn payload(&self) -> &'a P {
+        self.payload
+    }
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    pub fn creation_time(&self) -> Option<DateTime<Utc>> {
+        self.creation_time
+    }
 }
 
 #[derive(EnumString, Display, EnumIter, PartialEq, IntoStaticStr, Debug)]
@@ -78,7 +115,6 @@ impl<'a> KafkyClient<'a> {
             .expect("subscribe error");
         info!("subscription properties {:?}", properties);
         let start_time = Instant::now();
-        // for kafky_msg in consumer.iter() {
         loop {
             if let Some(timeout) = timeout {
                 let now = Instant::now();
@@ -108,10 +144,22 @@ impl<'a> KafkyClient<'a> {
                             }
                         };
                         if let Some(payload) = opt_payload {
+                            let creation_time = match m.timestamp() {
+                                Timestamp::NotAvailable => None,
+                                Timestamp::CreateTime(creation_time) => {
+                                    Some(Utc.timestamp_millis(creation_time))
+                                }
+                                Timestamp::LogAppendTime(log_appended_msec) => {
+                                    Some(Utc.timestamp_millis(log_appended_msec))
+                                }
+                            };
+
                             if !message_consumer(Ok(KafkyConsumerMessage {
                                 key,
                                 payload,
                                 partition: m.partition(),
+                                offset: m.offset(),
+                                creation_time,
                             })) {
                                 break;
                             }

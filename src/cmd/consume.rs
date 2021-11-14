@@ -30,10 +30,10 @@ impl<'a> KafkyCmd<'a> {
                     .value_name("TOPIC_NAME"),
             )
             .arg(
-                Arg::with_name("consumerGroup")
+                Arg::with_name("consumer-group")
                     .short("c")
-                    .required(true)
                     .default_value_os(self.hostname())
+                    .required(true)
                     .long("consumer-group")
                     .value_name("CONSUMER GROUP NAME"),
             )
@@ -45,7 +45,13 @@ impl<'a> KafkyCmd<'a> {
                     .short("k")
                     .takes_value(true),
             )
-            .arg(Arg::with_name("json").long("json"))
+            .arg(
+                Arg::with_name("format")
+                    .long("--output-format")
+                    .short("o")
+                    .possible_values(&["json", "text"])
+                    .default_value("text"),
+            )
             .args(offset_args.as_slice())
             .group(ArgGroup::with_name("offset").args(offset_values.as_slice()))
     }
@@ -55,32 +61,40 @@ impl<'a> KafkyCmd<'a> {
         app_matches: &ArgMatches<'_>,
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {
+        let format: &str = app_matches.value_of("format").unwrap().into();
+
         kafky_client.consume::<str, str, _>(
             &KafkyConsumeProperties {
                 topics: app_matches.values_of("topic").unwrap().collect(),
-                consumer_group: app_matches.value_of("consumerGroup").unwrap(),
+                consumer_group: app_matches.value_of("consumer-group").unwrap(),
                 offset: KafkyCmd::extract_offset_from_arg(app_matches)?,
                 auto_commit: app_matches.is_present("autocommit"),
             },
             None,
             |msg_result| match msg_result {
-                Ok(msg) => {
-                    if app_matches.is_present("json") {
-                        println!("{}", serde_json::to_string(&msg).unwrap())
-                    } else {
+                Ok(msg) => match format {
+                    "json" => {
+                        println!("{}", serde_json::to_string(&msg).unwrap());
+                        true
+                    }
+                    "text" => {
                         if app_matches.is_present("key-separator") {
                             println!(
                                 "{}{}{}",
-                                msg.key.unwrap_or("null"),
+                                msg.key().unwrap_or("null"),
                                 app_matches.value_of("key-separator").unwrap(),
-                                msg.payload
+                                msg.payload()
                             )
                         } else {
-                            println!("{}", msg.payload)
+                            println!("{}", msg.payload())
                         }
+                        true
                     }
-                    true
-                }
+                    _ => {
+                        error!("invalid format");
+                        false
+                    }
+                },
                 Err(err) => {
                     error!("error: {:?}", err);
                     false

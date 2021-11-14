@@ -90,7 +90,6 @@ impl KafkyConsumerGroup {
         &self.topics
     }
 
-
     pub fn group(&self) -> &str {
         &self.group
     }
@@ -113,8 +112,8 @@ impl<'a> KafkyClient<'a> {
             Some(Duration::from_secs(timeout_sec)),
             |consumer_offset_msg_res| {
                 let msg = consumer_offset_msg_res.unwrap();
-                let mut key_rdr = Cursor::new(msg.key.unwrap());
-                let mut payload_rdr = Cursor::new(msg.payload);
+                let mut key_rdr = Cursor::new(msg.key().unwrap());
+                let mut payload_rdr = Cursor::new(msg.payload());
 
                 let key_version = key_rdr
                     .read_i16::<BigEndian>()
@@ -166,8 +165,6 @@ impl<'a> KafkyClient<'a> {
                 }
             },
         )?;
-
-
 
         Ok(result)
     }
