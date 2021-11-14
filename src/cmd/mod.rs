@@ -1,4 +1,4 @@
 pub mod command;
 pub mod consume;
 pub mod produce;
-pub mod show;
+pub mod get;

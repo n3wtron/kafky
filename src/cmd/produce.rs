@@ -3,7 +3,7 @@ use std::io::Write;
 use std::sync::Arc;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use log::debug;
+use log::{debug, error};
 
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
@@ -46,6 +46,7 @@ impl<'a> KafkyCmd<'a> {
         loop {
             print!("{}> ", topic);
             io::stdout().flush().unwrap();
+            read_line.clear();
             match io::stdin().read_line(&mut read_line) {
                 Ok(size) => {
                     if size == 0 {
@@ -55,8 +56,12 @@ impl<'a> KafkyCmd<'a> {
 
                     if let Some(key_separator) = app_matches.value_of("key-separator") {
                         let key_payload: Vec<&str> = read_line.split(key_separator).collect();
+                        if key_payload.len() != 2 {
+                            error!("key separator \"{}\" not found", key_separator);
+                            continue;
+                        }
                         payload = key_payload.get(1).unwrap();
-                        key = key_payload.get(0).map(|s|s.to_string());
+                        key = key_payload.get(0).map(|s| s.to_string());
                     } else {
                         key = None;
                         payload = &read_line;
@@ -70,7 +75,6 @@ impl<'a> KafkyCmd<'a> {
                             return Err(error);
                         }
                     }
-                    read_line.clear();
                 }
                 Err(_) => {
                     break;

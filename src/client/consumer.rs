@@ -1,7 +1,9 @@
 use log::{debug, error, info};
 use rdkafka::consumer::{BaseConsumer, Consumer};
+use rdkafka::message::FromBytes;
 use rdkafka::Message;
 use serde::Serialize;
+use std::time::{Duration, Instant};
 use strum::IntoEnumIterator;
 use strum_macros;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
@@ -9,9 +11,9 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 use crate::{KafkyClient, KafkyError};
 
 #[derive(Debug, Serialize)]
-pub(crate) struct KafkyConsumerMessage {
-    pub key: Option<String>,
-    pub payload: String,
+pub(crate) struct KafkyConsumerMessage<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> {
+    pub key: Option<&'a K>,
+    pub payload: &'a P,
     pub partition: i32,
 }
 
@@ -52,10 +54,15 @@ pub(crate) struct KafkyConsumeProperties<'a> {
 }
 
 impl<'a> KafkyClient<'a> {
-    pub(crate) fn consume<F: Fn(Result<KafkyConsumerMessage, KafkyError>) -> ()>(
+    pub(crate) fn consume<
+        K: ?Sized + FromBytes,
+        P: ?Sized + FromBytes,
+        F: FnMut(Result<KafkyConsumerMessage<K, P>, KafkyError>) -> bool,
+    >(
         &self,
         properties: &'a KafkyConsumeProperties,
-        message_consumer: F,
+        timeout: Option<Duration>,
+        mut message_consumer: F,
     ) -> Result<(), KafkyError> {
         let mut consumer_builder = self.config_builder();
         consumer_builder
@@ -70,38 +77,52 @@ impl<'a> KafkyClient<'a> {
             .subscribe(&properties.topics)
             .expect("subscribe error");
         info!("subscription properties {:?}", properties);
+        let start_time = Instant::now();
+        // for kafky_msg in consumer.iter() {
+        loop {
+            if let Some(timeout) = timeout {
+                let now = Instant::now();
+                if now.duration_since(start_time) > timeout {
+                    break;
+                }
+            }
+            let opt_kafky_msg = consumer.poll(Duration::from_millis(100));
+            if let Some(kafky_msg) = opt_kafky_msg {
+                match kafky_msg {
+                    Ok(m) => {
+                        let opt_payload: Option<&P> = match m.payload_view::<P>() {
+                            None => None,
+                            Some(Ok(s)) => Some(s),
+                            Some(Err(_)) => {
+                                error!("Error while deserializing message payload");
+                                None
+                            }
+                        };
 
-        for kafky_msg in consumer.iter().map(|message_result| match message_result {
-            Ok(m) => {
-                let payload = match m.payload_view::<str>() {
-                    None => "",
-                    Some(Ok(s)) => s,
-                    Some(Err(e)) => {
-                        error!("Error while deserializing message payload: {:?}", e);
-                        ""
+                        let key: Option<&K> = match m.key_view::<K>() {
+                            None => None,
+                            Some(Ok(s)) => Some(s),
+                            Some(Err(_)) => {
+                                error!("Error while deserializing message key");
+                                None
+                            }
+                        };
+                        if let Some(payload) = opt_payload {
+                            if !message_consumer(Ok(KafkyConsumerMessage {
+                                key,
+                                payload,
+                                partition: m.partition(),
+                            })) {
+                                break;
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        error!("Error consuming messages:{}", err);
+                        break;
                     }
                 };
-
-                let key = match m.key_view::<str>() {
-                    None => None,
-                    Some(Ok(s)) => Some(s.to_string()),
-                    Some(Err(e)) => {
-                        error!("Error while deserializing message key: {:?}", e);
-                        None
-                    }
-                };
-
-                Ok(KafkyConsumerMessage {
-                    key,
-                    payload: payload.to_string(),
-                    partition: m.partition(),
-                })
             }
-            Err(err) => {
-                return Err(err.into());
-            }
-        }) {
-            message_consumer(kafky_msg)
         }
 
         Ok(())

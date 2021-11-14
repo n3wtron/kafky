@@ -1,6 +1,8 @@
+use std::io;
 use config::ConfigError;
 use rdkafka::error::KafkaError;
 use thiserror::Error;
+use std::str;
 
 #[derive(Debug, Error)]
 pub enum KafkyError {
@@ -14,6 +16,8 @@ pub enum KafkyError {
     EnvironmentNotFound(String, String),
     #[error("No credential specified, available credential")]
     NoCredentialSpecified(),
+    #[error("Parse error :{0}")]
+    ParseError(String),
     #[error("Credential not found {0}, in the environment {1} available credentials {2}")]
     CredentialNotFound(String, String, String),
     #[error("Kafka error:{0}")]
@@ -45,5 +49,17 @@ impl From<ConfigError> for KafkyError {
 impl From<serde_json::Error> for KafkyError {
     fn from(json_error: serde_json::Error) -> Self {
         KafkyError::InvalidJson(json_error.to_string())
+    }
+}
+
+impl From<io::Error> for KafkyError {
+    fn from(err: io::Error) -> KafkyError {
+        KafkyError::ParseError(err.to_string())
+    }
+}
+
+impl From<str::Utf8Error> for KafkyError {
+    fn from(err: str::Utf8Error) -> KafkyError {
+        KafkyError::ParseError(err.to_string())
     }
 }

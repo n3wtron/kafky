@@ -44,7 +44,7 @@ fn main() -> Result<(), errors::KafkyError> {
     let kafky_client = Arc::new(KafkyClient::new(&cfg, environment, credential));
 
     match app_matches.subcommand() {
-        ("show", Some(matches)) => command.show_exec(matches, kafky_client.clone()),
+        ("get", Some(matches)) => command.get_exec(matches, kafky_client.clone()),
         ("produce", Some(matches)) => command.produce_exec(matches, kafky_client.clone()),
         ("consume", Some(matches)) => command.consume_exec(matches, kafky_client.clone()),
         (_, _) => Err(KafkyError::InvalidCommand()),

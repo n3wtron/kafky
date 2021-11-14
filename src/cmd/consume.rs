@@ -55,13 +55,14 @@ impl<'a> KafkyCmd<'a> {
         app_matches: &ArgMatches<'_>,
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {
-        kafky_client.consume(
+        kafky_client.consume::<str, str, _>(
             &KafkyConsumeProperties {
                 topics: app_matches.values_of("topic").unwrap().collect(),
                 consumer_group: app_matches.value_of("consumerGroup").unwrap(),
                 offset: KafkyCmd::extract_offset_from_arg(app_matches)?,
                 auto_commit: app_matches.is_present("autocommit"),
             },
+            None,
             |msg_result| match msg_result {
                 Ok(msg) => {
                     if app_matches.is_present("json") {
@@ -70,7 +71,7 @@ impl<'a> KafkyCmd<'a> {
                         if app_matches.is_present("key-separator") {
                             println!(
                                 "{}{}{}",
-                                msg.key.unwrap_or("null".to_string()),
+                                msg.key.unwrap_or("null"),
                                 app_matches.value_of("key-separator").unwrap(),
                                 msg.payload
                             )
@@ -78,9 +79,11 @@ impl<'a> KafkyCmd<'a> {
                             println!("{}", msg.payload)
                         }
                     }
+                    true
                 }
                 Err(err) => {
-                    error!("error: {:?}", err)
+                    error!("error: {:?}", err);
+                    false
                 }
             },
         )
