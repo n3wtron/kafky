@@ -1,11 +1,11 @@
 use std::fs::create_dir;
 use std::io::{stdin, stdout, Write};
 use std::path::PathBuf;
-use std::process::Command;
-use std::string::String;
-use std::sync::Arc;
 
-use clap::ArgMatches;
+use std::string::String;
+
+
+
 use log::debug;
 
 use client::kafky_client::KafkyClient;

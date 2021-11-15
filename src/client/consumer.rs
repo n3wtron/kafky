@@ -1,7 +1,7 @@
 use chrono::{DateTime, TimeZone, Utc};
 use log::{debug, error, info};
 use rdkafka::consumer::{BaseConsumer, Consumer};
-use rdkafka::error::KafkaError;
+
 use rdkafka::message::FromBytes;
 use rdkafka::{Message, Timestamp};
 use serde::{Serialize, Serializer};
@@ -43,16 +43,9 @@ impl<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> KafkyConsumerMessage<'a, 
     pub fn payload(&self) -> &'a P {
         self.payload
     }
-    pub fn partition(&self) -> i32 {
-        self.partition
-    }
-    pub fn offset(&self) -> i64 {
-        self.offset
-    }
     pub fn timestamp(&self) -> Option<DateTime<Utc>> {
         self.timestamp
     }
-
     pub fn topic(&self) -> &'a str {
         self.topic
     }

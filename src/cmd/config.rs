@@ -2,12 +2,12 @@ use crate::{KafkyCmd, KafkyError};
 use clap::{App, ArgMatches, SubCommand};
 use log::debug;
 use std::io::{stdin, stdout, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::process::Command;
-use std::sync::Arc;
+
 
 impl<'a> KafkyCmd<'a> {
-    pub fn get_config_command() -> App<'a, 'a> {
+    pub fn config_sub_command(&self) -> App<'a, 'a> {
         SubCommand::with_name("config")
             .subcommand(SubCommand::with_name("edit").help("edit the kafky configuration"))
     }

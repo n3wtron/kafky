@@ -1,5 +1,5 @@
 use std::ffi::OsString;
-use std::io::stdout;
+
 use std::sync::Arc;
 
 use crate::config::KafkyConfig;
@@ -52,13 +52,14 @@ impl<'a> KafkyCmd<'a> {
             .subcommand(self.produce_sub_command())
             .subcommand(self.consume_sub_command())
             .subcommand(self.consume_sub_command())
+            .subcommand(self.config_sub_command())
     }
     pub fn hostname(&self) -> &OsString {
         &self.hostname
     }
 
     pub fn exec(&self) -> Result<(), KafkyError> {
-        let mut app = self.create_app();
+        let app = self.create_app();
         let app_matches = &app.get_matches();
 
         let environment = String::from(app_matches.value_of("environment").unwrap());
@@ -75,7 +76,7 @@ impl<'a> KafkyCmd<'a> {
     }
 
     pub fn print_help(&self) {
-        self.create_app().print_help();
+        self.create_app().print_help().expect("app help error");
     }
 
     fn extract_credential(

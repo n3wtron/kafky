@@ -8,7 +8,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::KafkyError;
-use crate::KafkyCmd;
+
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyPrivateKey {
