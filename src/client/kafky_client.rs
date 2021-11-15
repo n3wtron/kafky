@@ -10,7 +10,7 @@ use crate::config::{KafkyConfig, KafkyCredentialKind, KafkyPEM};
 use crate::KafkyError;
 
 pub(crate) struct KafkyClient<'a> {
-    kafky_config: &'a KafkyConfig,
+    kafky_config: &'a KafkyConfig<'a>,
     environment: String,
     credential: String,
     producer: Mutex<Option<Arc<BaseProducer>>>,

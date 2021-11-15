@@ -20,7 +20,7 @@ struct ConsumerGroupRow<'a> {
 }
 
 impl<'a> KafkyCmd<'a> {
-    pub fn show_sub_command(&self) -> App<'a, 'a> {
+    pub fn get_sub_command(&self) -> App<'a, 'a> {
         SubCommand::with_name("get")
             .about("Show kafka information")
             .subcommand(SubCommand::with_name("topics").about("retrieve kafka topic names"))
@@ -61,6 +61,7 @@ impl<'a> KafkyCmd<'a> {
                     ),
             )
     }
+
     pub fn get_exec(
         &self,
         app_matches: &ArgMatches,

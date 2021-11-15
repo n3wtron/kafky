@@ -52,6 +52,11 @@ impl<'a> KafkyCmd<'a> {
                     .possible_values(&["json", "text"])
                     .default_value("text"),
             )
+            .arg(
+                Arg::with_name("timestamp")
+                    .long("timestamp")
+                    .help("print timestamp message (works only with text format)"),
+            )
             .args(offset_args.as_slice())
             .group(ArgGroup::with_name("offset").args(offset_values.as_slice()))
     }
@@ -62,10 +67,10 @@ impl<'a> KafkyCmd<'a> {
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {
         let format: &str = app_matches.value_of("format").unwrap().into();
-
+        let topics: Vec<&str> = app_matches.values_of("topic").unwrap().collect();
         kafky_client.consume::<str, str, _>(
             &KafkyConsumeProperties {
-                topics: app_matches.values_of("topic").unwrap().collect(),
+                topics: &topics,
                 consumer_group: app_matches.value_of("consumer-group").unwrap(),
                 offset: KafkyCmd::extract_offset_from_arg(app_matches)?,
                 auto_commit: app_matches.is_present("autocommit"),
@@ -78,16 +83,26 @@ impl<'a> KafkyCmd<'a> {
                         true
                     }
                     "text" => {
-                        if app_matches.is_present("key-separator") {
-                            println!(
-                                "{}{}{}",
-                                msg.key().unwrap_or("null"),
-                                app_matches.value_of("key-separator").unwrap(),
-                                msg.payload()
-                            )
-                        } else {
-                            println!("{}", msg.payload())
+                        let mut row = String::new();
+                        if topics.len() > 1 {
+                            row.push_str(msg.topic());
+                            row.push_str("-> ");
                         }
+                        if app_matches.is_present("timestamp") {
+                            row.push_str("[");
+                            row.push_str(
+                                &msg.timestamp()
+                                    .map(|t| t.to_rfc3339())
+                                    .unwrap_or(String::from("NO-TS")),
+                            );
+                            row.push_str("] ");
+                        }
+                        if app_matches.is_present("key-separator") {
+                            row.push_str(msg.key().unwrap_or("null"));
+                            row.push_str(app_matches.value_of("key-separator").unwrap());
+                        }
+                        row.push_str(msg.payload());
+                        println!("{}", row);
                         true
                     }
                     _ => {

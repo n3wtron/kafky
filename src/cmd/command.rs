@@ -1,14 +1,16 @@
 use std::ffi::OsString;
+use std::io::stdout;
+use std::sync::Arc;
 
 use crate::config::KafkyConfig;
-use clap::{App, Arg};
+use clap::{App, Arg, ArgMatches};
 use gethostname::gethostname;
 
-use crate::KafkyError;
+use crate::{KafkyClient, KafkyError};
 
 pub(crate) struct KafkyCmd<'a> {
     hostname: OsString,
-    config: &'a KafkyConfig,
+    config: &'a KafkyConfig<'a>,
 }
 
 impl<'a> KafkyCmd<'a> {
@@ -19,7 +21,7 @@ impl<'a> KafkyCmd<'a> {
         })
     }
 
-    pub fn create_command(&'a self) -> App<'a, 'a> {
+    fn create_app(&'a self) -> App<'a, 'a> {
         let environments: Vec<&str> = self
             .config
             .environments
@@ -46,11 +48,52 @@ impl<'a> KafkyCmd<'a> {
                     .value_name("STRING")
                     .help("environment"),
             )
-            .subcommand(self.show_sub_command())
+            .subcommand(self.get_sub_command())
             .subcommand(self.produce_sub_command())
+            .subcommand(self.consume_sub_command())
             .subcommand(self.consume_sub_command())
     }
     pub fn hostname(&self) -> &OsString {
         &self.hostname
+    }
+
+    pub fn exec(&self) -> Result<(), KafkyError> {
+        let mut app = self.create_app();
+        let app_matches = &app.get_matches();
+
+        let environment = String::from(app_matches.value_of("environment").unwrap());
+        let credential = self.extract_credential(&app_matches, &environment)?;
+        let kafky_client = Arc::new(KafkyClient::new(self.config, environment, credential));
+
+        match app_matches.subcommand() {
+            ("get", Some(matches)) => self.get_exec(matches, kafky_client.clone()),
+            ("produce", Some(matches)) => self.produce_exec(matches, kafky_client.clone()),
+            ("consume", Some(matches)) => self.consume_exec(matches, kafky_client.clone()),
+            ("config", Some(matches)) => self.config_exec(matches, self.config.path()),
+            (_, _) => Err(KafkyError::InvalidCommand()),
+        }
+    }
+
+    pub fn print_help(&self) {
+        self.create_app().print_help();
+    }
+
+    fn extract_credential(
+        &self,
+        app_matches: &ArgMatches,
+        environment: &String,
+    ) -> Result<String, KafkyError> {
+        app_matches
+            .value_of("credential")
+            .map(|cred| cred.to_string())
+            .or(self.config.get_environment(environment).and_then(|e| {
+                if e.credentials.len() == 1 {
+                    let first_credential = e.credentials.first().map(|c| c.name.clone()).unwrap();
+                    Some(first_credential)
+                } else {
+                    None
+                }
+            }))
+            .ok_or(KafkyError::NoCredentialSpecified())
     }
 }

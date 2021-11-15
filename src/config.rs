@@ -1,13 +1,14 @@
 use std::fs;
 
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use config::{Config, File};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::KafkyError;
+use crate::KafkyCmd;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KafkyPrivateKey {
@@ -69,21 +70,36 @@ impl KafkyEnvironment {
     }
 }
 
+fn empty_path<'a>() -> &'a Path {
+    Path::new("").as_ref()
+}
+
 #[derive(Debug, Deserialize, Serialize)]
-pub struct KafkyConfig {
+pub struct KafkyConfig<'a> {
+    #[serde(skip)]
+    #[serde(default = "empty_path")]
+    path: &'a Path,
     pub environments: Vec<KafkyEnvironment>,
 }
 
-impl KafkyConfig {
-    pub fn load(config_file: &str) -> Result<Self, KafkyError> {
-        if !Path::new(config_file).exists() {
-            return Err(KafkyError::ConfigurationNotFound(config_file.to_string()));
+impl<'a> KafkyConfig<'a> {
+    pub fn load(config_file: &'a Path) -> Result<Self, KafkyError> {
+        debug!("checking configuration file presence {:?}", config_file);
+        if !config_file.exists() {
+            return Err(KafkyError::ConfigurationNotFound(
+                config_file.as_os_str().to_str().unwrap().to_string(),
+            ));
         }
         let mut cfg = Config::default();
-        debug!("loading configuration {}", &config_file);
-        cfg.merge(File::with_name(config_file))?;
+        debug!("loading configuration {:?}", &config_file);
+        cfg.merge(File::from(config_file.clone()))?;
 
-        cfg.try_into().map_err(|e| e.into())
+        cfg.try_into::<KafkyConfig>()
+            .map(|mut kcfg| {
+                kcfg.path = config_file;
+                kcfg
+            })
+            .map_err(|e| e.into())
     }
 
     pub fn get_environment(&self, environment: &String) -> Option<&KafkyEnvironment> {
@@ -93,9 +109,13 @@ impl KafkyConfig {
     pub fn get_environment_names(&self) -> Vec<String> {
         self.environments.iter().map(|e| e.name.clone()).collect()
     }
+
+    pub fn path(&self) -> &'a Path {
+        self.path
+    }
 }
 
-pub(crate) fn create_sample(config_file_path: &str) -> Result<(), KafkyError> {
+pub(crate) fn create_sample(config_file_path: &PathBuf) -> Result<(), KafkyError> {
     let env = KafkyEnvironment {
         name: "sample-env".to_string(),
         brokers: vec!["localhost:9094".to_string()],
@@ -131,6 +151,7 @@ pub(crate) fn create_sample(config_file_path: &str) -> Result<(), KafkyError> {
         ],
     };
     let config = KafkyConfig {
+        path: config_file_path,
         environments: vec![env],
     };
     let mut config_file = fs::File::create(config_file_path)

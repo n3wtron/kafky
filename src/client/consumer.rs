@@ -12,13 +12,10 @@ use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
 use crate::{KafkyClient, KafkyError};
 
-
-pub fn serialize_dt<S>(
-    dt: &Option<DateTime<Utc>>,
-    serializer: S
-) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer {
+pub fn serialize_dt<S>(dt: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
     match dt {
         Some(dt) => serializer.serialize_str(&dt.to_rfc3339()),
         _ => unreachable!(),
@@ -28,11 +25,15 @@ pub fn serialize_dt<S>(
 #[derive(Debug, Serialize)]
 pub(crate) struct KafkyConsumerMessage<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> {
     key: Option<&'a K>,
+    topic: &'a str,
     payload: &'a P,
     partition: i32,
     offset: i64,
-    #[serde(serialize_with = "serialize_dt", skip_serializing_if  = "Option::is_none")]
-    creation_time: Option<DateTime<Utc>>,
+    #[serde(
+        serialize_with = "serialize_dt",
+        skip_serializing_if = "Option::is_none"
+    )]
+    timestamp: Option<DateTime<Utc>>,
 }
 
 impl<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> KafkyConsumerMessage<'a, K, P> {
@@ -48,9 +49,12 @@ impl<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> KafkyConsumerMessage<'a, 
     pub fn offset(&self) -> i64 {
         self.offset
     }
+    pub fn timestamp(&self) -> Option<DateTime<Utc>> {
+        self.timestamp
+    }
 
-    pub fn creation_time(&self) -> Option<DateTime<Utc>> {
-        self.creation_time
+    pub fn topic(&self) -> &'a str {
+        self.topic
     }
 }
 
@@ -84,7 +88,7 @@ impl<'a> KafkyConsumerOffset {
 
 #[derive(Debug)]
 pub(crate) struct KafkyConsumeProperties<'a> {
-    pub topics: Vec<&'a str>,
+    pub topics: &'a Vec<&'a str>,
     pub consumer_group: &'a str,
     pub offset: KafkyConsumerOffset,
     pub auto_commit: bool,
@@ -157,9 +161,10 @@ impl<'a> KafkyClient<'a> {
                             if !message_consumer(Ok(KafkyConsumerMessage {
                                 key,
                                 payload,
+                                topic: m.topic(),
                                 partition: m.partition(),
                                 offset: m.offset(),
-                                creation_time,
+                                timestamp: creation_time,
                             })) {
                                 break;
                             }

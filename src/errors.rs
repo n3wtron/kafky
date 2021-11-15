@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::io;
 use config::ConfigError;
 use rdkafka::error::KafkaError;

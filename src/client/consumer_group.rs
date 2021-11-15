@@ -104,7 +104,7 @@ impl<'a> KafkyClient<'a> {
 
         self.consume::<[u8], [u8], _>(
             &KafkyConsumeProperties {
-                topics: vec!["__consumer_offsets"],
+                topics: &vec!["__consumer_offsets"],
                 consumer_group: "kafky",
                 offset: KafkyConsumerOffset::Beginning,
                 auto_commit: false,
