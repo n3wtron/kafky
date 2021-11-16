@@ -7,7 +7,6 @@ use log::error;
 
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
-use crate::KafkyCmd;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -19,8 +18,10 @@ struct ConsumerGroupRow<'a> {
     lag: i64,
 }
 
-impl<'a> KafkyCmd<'a> {
-    pub fn get_sub_command(&self) -> App<'a, 'a> {
+pub(crate) struct GetCmd {}
+
+impl GetCmd {
+    pub fn command<'a>() -> App<'a, 'a> {
         SubCommand::with_name("get")
             .about("Show kafka information")
             .subcommand(SubCommand::with_name("topics").about("retrieve kafka topic names"))
@@ -62,8 +63,7 @@ impl<'a> KafkyCmd<'a> {
             )
     }
 
-    pub fn get_exec(
-        &self,
+    pub fn exec(
         app_matches: &ArgMatches,
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {

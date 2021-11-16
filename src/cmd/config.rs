@@ -1,22 +1,19 @@
-use crate::{KafkyCmd, KafkyError};
+use crate::KafkyError;
 use clap::{App, ArgMatches, SubCommand};
 use log::debug;
 use std::io::{stdin, stdout, Write};
-use std::path::{Path};
+use std::path::Path;
 use std::process::Command;
 
+pub struct ConfigCmd {}
 
-impl<'a> KafkyCmd<'a> {
-    pub fn config_sub_command(&self) -> App<'a, 'a> {
+impl ConfigCmd {
+    pub fn command<'a>() -> App<'a, 'a> {
         SubCommand::with_name("config")
             .subcommand(SubCommand::with_name("edit").help("edit the kafky configuration"))
     }
 
-    pub fn config_exec(
-        &self,
-        app_matches: &ArgMatches<'_>,
-        config_file: &Path,
-    ) -> Result<(), KafkyError> {
+    pub fn exec(app_matches: &ArgMatches, config_file: &Path) -> Result<(), KafkyError> {
         if let Some(_) = app_matches.subcommand_matches("edit") {
             return Self::open_editor(config_file);
         }

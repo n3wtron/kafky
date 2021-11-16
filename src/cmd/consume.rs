@@ -1,14 +1,16 @@
 use crate::client::consumer::{KafkyConsumeProperties, KafkyConsumerOffset};
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
-use crate::KafkyCmd;
 use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
+use gethostname::gethostname;
 use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 
-impl<'a> KafkyCmd<'a> {
-    pub fn consume_sub_command(&self) -> App {
+pub (crate) struct ConsumeCmd {}
+
+impl ConsumeCmd {
+    pub fn command<'a>() -> App<'a, 'a> {
         let offset_values: Vec<&str> = KafkyConsumerOffset::values_str();
         let offset_args: Vec<Arg> = KafkyConsumerOffset::values_str()
             .iter()
@@ -18,7 +20,7 @@ impl<'a> KafkyCmd<'a> {
                     .group("offset")
             })
             .collect();
-
+        let hostname = Box::leak(Box::new(gethostname()));
         SubCommand::with_name("consume")
             .about("Consume messages from a topic")
             .arg(
@@ -32,7 +34,7 @@ impl<'a> KafkyCmd<'a> {
             .arg(
                 Arg::with_name("consumer-group")
                     .short("c")
-                    .default_value_os(self.hostname())
+                    .default_value_os(hostname)
                     .required(true)
                     .long("consumer-group")
                     .value_name("CONSUMER GROUP NAME"),
@@ -61,8 +63,7 @@ impl<'a> KafkyCmd<'a> {
             .group(ArgGroup::with_name("offset").args(offset_values.as_slice()))
     }
 
-    pub fn consume_exec(
-        &self,
+    pub fn exec(
         app_matches: &ArgMatches<'_>,
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {
@@ -72,7 +73,7 @@ impl<'a> KafkyCmd<'a> {
             &KafkyConsumeProperties {
                 topics: &topics,
                 consumer_group: app_matches.value_of("consumer-group").unwrap(),
-                offset: KafkyCmd::extract_offset_from_arg(app_matches)?,
+                offset: Self::extract_offset_from_arg(app_matches)?,
                 auto_commit: app_matches.is_present("autocommit"),
             },
             None,

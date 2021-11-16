@@ -1,5 +1,5 @@
-pub mod command;
+pub mod root;
 pub mod consume;
 pub mod produce;
 pub mod get;
-mod config;
+pub mod config;

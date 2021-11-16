@@ -7,11 +7,12 @@ use log::{debug, error};
 
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
-use crate::KafkyCmd;
 use std::option::Option;
 
-impl<'a> KafkyCmd<'a> {
-    pub fn produce_sub_command(&self) -> App<'a, 'a> {
+pub(crate) struct ProduceCmd{}
+
+impl ProduceCmd {
+    pub fn command<'a>() -> App<'a, 'a> {
         SubCommand::with_name("produce")
             .about("Produce messages to a topic")
             .arg(
@@ -29,8 +30,7 @@ impl<'a> KafkyCmd<'a> {
                     .takes_value(true),
             )
     }
-    pub fn produce_exec(
-        &self,
+    pub fn exec(
         app_matches: &ArgMatches,
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {

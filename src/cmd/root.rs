@@ -1,29 +1,19 @@
-use std::ffi::OsString;
-
 use std::sync::Arc;
 
 use crate::config::KafkyConfig;
 use clap::{App, Arg, ArgMatches};
-use gethostname::gethostname;
 
+use crate::cmd::config::ConfigCmd;
+use crate::cmd::consume::ConsumeCmd;
+use crate::cmd::get::GetCmd;
+use crate::cmd::produce::ProduceCmd;
 use crate::{KafkyClient, KafkyError};
 
-pub(crate) struct KafkyCmd<'a> {
-    hostname: OsString,
-    config: &'a KafkyConfig<'a>,
-}
+pub struct RootCmd {}
 
-impl<'a> KafkyCmd<'a> {
-    pub fn new(cfg: &'a KafkyConfig) -> Result<Self, KafkyError> {
-        Ok(Self {
-            hostname: gethostname(),
-            config: cfg,
-        })
-    }
-
-    fn create_app(&'a self) -> App<'a, 'a> {
-        let environments: Vec<&str> = self
-            .config
+impl RootCmd {
+    pub fn command<'a>(config: &'a KafkyConfig) -> App<'a, 'a> {
+        let environments: Vec<&str> = config
             .environments
             .iter()
             .map(|e| e.name.as_str())
@@ -48,46 +38,36 @@ impl<'a> KafkyCmd<'a> {
                     .value_name("STRING")
                     .help("environment"),
             )
-            .subcommand(self.get_sub_command())
-            .subcommand(self.produce_sub_command())
-            .subcommand(self.consume_sub_command())
-            .subcommand(self.consume_sub_command())
-            .subcommand(self.config_sub_command())
-    }
-    pub fn hostname(&self) -> &OsString {
-        &self.hostname
+            .subcommand(ConsumeCmd::command())
+            .subcommand(GetCmd::command())
+            .subcommand(ProduceCmd::command())
+            .subcommand(ConsumeCmd::command())
+            .subcommand(ConfigCmd::command())
     }
 
-    pub fn exec(&self) -> Result<(), KafkyError> {
-        let app = self.create_app();
-        let app_matches = &app.get_matches();
-
+    pub fn exec(app_matches: ArgMatches, config: &KafkyConfig) -> Result<(), KafkyError> {
         let environment = String::from(app_matches.value_of("environment").unwrap());
-        let credential = self.extract_credential(&app_matches, &environment)?;
-        let kafky_client = Arc::new(KafkyClient::new(self.config, environment, credential));
+        let credential = Self::extract_credential(&app_matches, config, &environment)?;
+        let kafky_client = Arc::new(KafkyClient::new(config, environment, credential));
 
         match app_matches.subcommand() {
-            ("get", Some(matches)) => self.get_exec(matches, kafky_client.clone()),
-            ("produce", Some(matches)) => self.produce_exec(matches, kafky_client.clone()),
-            ("consume", Some(matches)) => self.consume_exec(matches, kafky_client.clone()),
-            ("config", Some(matches)) => self.config_exec(matches, self.config.path()),
+            ("get", Some(matches)) => GetCmd::exec(matches, kafky_client.clone()),
+            ("produce", Some(matches)) => ProduceCmd::exec(matches, kafky_client.clone()),
+            ("consume", Some(matches)) => ConsumeCmd::exec(matches, kafky_client.clone()),
+            ("config", Some(matches)) => ConfigCmd::exec(matches, config.path()),
             (_, _) => Err(KafkyError::InvalidCommand()),
         }
     }
 
-    pub fn print_help(&self) {
-        self.create_app().print_help().expect("app help error");
-    }
-
     fn extract_credential(
-        &self,
         app_matches: &ArgMatches,
+        config: &KafkyConfig,
         environment: &String,
     ) -> Result<String, KafkyError> {
         app_matches
             .value_of("credential")
             .map(|cred| cred.to_string())
-            .or(self.config.get_environment(environment).and_then(|e| {
+            .or(config.get_environment(environment).and_then(|e| {
                 if e.credentials.len() == 1 {
                     let first_credential = e.credentials.first().map(|c| c.name.clone()).unwrap();
                     Some(first_credential)
