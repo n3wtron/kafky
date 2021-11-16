@@ -53,20 +53,10 @@ impl<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> KafkyConsumerMessage<'a, 
 
 #[derive(EnumString, Display, EnumIter, PartialEq, IntoStaticStr, Debug)]
 pub enum KafkyConsumerOffset {
-    #[strum(serialize = "smallest")]
-    Smallest,
     #[strum(serialize = "earliest")]
     Earliest,
-    #[strum(serialize = "beginning")]
-    Beginning,
-    #[strum(serialize = "largest")]
-    Largest,
     #[strum(serialize = "latest")]
     Latest,
-    #[strum(serialize = "end")]
-    End,
-    #[strum(serialize = "error")]
-    Error,
 }
 
 impl<'a> KafkyConsumerOffset {

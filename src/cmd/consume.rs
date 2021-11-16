@@ -1,28 +1,19 @@
 use crate::client::consumer::{KafkyConsumeProperties, KafkyConsumerOffset};
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
-use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use gethostname::gethostname;
 use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 
-pub (crate) struct ConsumeCmd {}
+pub(crate) struct ConsumeCmd {}
 
 impl ConsumeCmd {
     pub fn command<'a>() -> App<'a, 'a> {
-        let offset_values: Vec<&str> = KafkyConsumerOffset::values_str();
-        let offset_args: Vec<Arg> = KafkyConsumerOffset::values_str()
-            .iter()
-            .map(|offset_name| {
-                Arg::with_name(offset_name)
-                    .long(offset_name)
-                    .group("offset")
-            })
-            .collect();
         let hostname = Box::leak(Box::new(gethostname()));
         SubCommand::with_name("consume")
-            .about("Consume messages from a topic")
+            .about("Consume messages from topics")
             .arg(
                 Arg::with_name("topic")
                     .short("t")
@@ -59,8 +50,9 @@ impl ConsumeCmd {
                     .long("timestamp")
                     .help("print timestamp message (works only with text format)"),
             )
-            .args(offset_args.as_slice())
-            .group(ArgGroup::with_name("offset").args(offset_values.as_slice()))
+            .arg(Arg::with_name("earliest").long("earliest").help("read from the earliest offset").group("offset"))
+            .arg(Arg::with_name("latest").long("latest").help("read from the latest offset (default)").group("offset"))
+
     }
 
     pub fn exec(

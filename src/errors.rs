@@ -11,10 +11,12 @@ pub enum KafkyError {
     ConfigurationNotFound(String),
     #[error("Invalid configuration {0}")]
     InvalidConfiguration(String),
+    #[error("Environment parameter is mandatory")]
+    EnvironmentParamNotFound(),
     #[error("Environment not found {0}, available environment {1}")]
     EnvironmentNotFound(String, String),
-    #[error("No credential specified, available credential")]
-    NoCredentialSpecified(),
+    #[error("No credential specified, available credentials {0}")]
+    NoCredentialSpecified(String),
     #[error("Parse error :{0}")]
     ParseError(String),
     #[error("Credential not found {0}, in the environment {1} available credentials {2}")]

@@ -10,7 +10,8 @@ impl DeleteCmd {
         SubCommand::with_name("delete")
             .about("delete kafka objects")
             .subcommand(
-                SubCommand::with_name("topic")
+                SubCommand::with_name("topics")
+                    .alias("topic")
                     .about("delete topics")
                     .arg(
                         Arg::with_name("topic")
@@ -33,7 +34,7 @@ impl DeleteCmd {
         arg_matches: &'a ArgMatches<'a>,
         kafky_client: Arc<KafkyClient<'a>>,
     ) -> Result<(), KafkyError> {
-        if let Some(create_topic_args) = arg_matches.subcommand_matches("topic") {
+        if let Some(create_topic_args) = arg_matches.subcommand_matches("topics") {
             let topic_names: Vec<&str> = create_topic_args.values_of("topic").unwrap().collect();
             let auto_yes = create_topic_args.is_present("yes");
             if !auto_yes {

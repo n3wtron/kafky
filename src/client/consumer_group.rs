@@ -106,7 +106,7 @@ impl<'a> KafkyClient<'a> {
             &KafkyConsumeProperties {
                 topics: &vec!["__consumer_offsets"],
                 consumer_group: "kafky",
-                offset: KafkyConsumerOffset::Beginning,
+                offset: KafkyConsumerOffset::Earliest,
                 auto_commit: false,
             },
             Some(Duration::from_secs(timeout_sec)),
