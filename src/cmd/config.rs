@@ -8,12 +8,12 @@ use std::process::Command;
 pub struct ConfigCmd {}
 
 impl ConfigCmd {
-    pub fn command<'a>() -> App<'a, 'a> {
+    pub(super) fn command<'a>() -> App<'a, 'a> {
         SubCommand::with_name("config")
             .subcommand(SubCommand::with_name("edit").help("edit the kafky configuration"))
     }
 
-    pub fn exec(app_matches: &ArgMatches, config_file: &Path) -> Result<(), KafkyError> {
+    pub(super) fn exec(app_matches: &ArgMatches, config_file: &Path) -> Result<(), KafkyError> {
         if let Some(_) = app_matches.subcommand_matches("edit") {
             return Self::open_editor(config_file);
         }
