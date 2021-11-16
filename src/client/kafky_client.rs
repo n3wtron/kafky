@@ -28,7 +28,7 @@ impl<'a> KafkyClient<'a> {
         }
     }
 
-    pub fn config_builder(&self) -> ClientConfig {
+    pub(super) fn config_builder(&self) -> ClientConfig {
         let environment = self
             .kafky_config
             .get_environment(&self.environment)
@@ -119,7 +119,7 @@ impl<'a> KafkyClient<'a> {
         client_config_builder
     }
 
-    pub(crate) fn get_producer(&self) -> Result<Arc<BaseProducer>, KafkyError> {
+    pub(super) fn get_producer(&self) -> Result<Arc<BaseProducer>, KafkyError> {
         let mut mtx_producer = self.producer.lock().unwrap();
         let opt_producer = (*mtx_producer).as_ref();
         match opt_producer {
@@ -136,7 +136,7 @@ impl<'a> KafkyClient<'a> {
         }
     }
 
-    pub(crate) fn get_util_consumer(&self) -> Result<Arc<BaseConsumer>, KafkyError> {
+    pub(super) fn get_util_consumer(&self) -> Result<Arc<BaseConsumer>, KafkyError> {
         let mut mtx_consumer = self.util_consumer.lock().unwrap();
         let util_consumer = (*mtx_consumer).as_ref();
         match util_consumer {

@@ -16,13 +16,12 @@ impl<'a> KafkyClient<'a> {
             &key,
             &payload
         );
-        let producer = self.get_producer()?;
         let mut record: BaseRecord<String, String> = BaseRecord::to(topic);
         if key.is_some() {
             record = record.key(key.as_ref().unwrap());
         }
         record = record.payload(&payload);
-        producer.send(record).expect("message was not sent");
+        self.get_producer()?.send(record).expect("message was not sent");
         Ok(())
     }
 }

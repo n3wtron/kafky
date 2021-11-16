@@ -170,7 +170,6 @@ impl<'a> KafkyClient<'a> {
                 };
             }
         }
-
         Ok(())
     }
 }

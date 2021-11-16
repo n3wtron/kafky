@@ -49,7 +49,6 @@ impl RootCmd {
         let environment = String::from(app_matches.value_of("environment").unwrap());
         let credential = Self::extract_credential(&app_matches, config, &environment)?;
         let kafky_client = Arc::new(KafkyClient::new(config, environment, credential));
-
         match app_matches.subcommand() {
             ("get", Some(matches)) => GetCmd::exec(matches, kafky_client.clone()),
             ("produce", Some(matches)) => ProduceCmd::exec(matches, kafky_client.clone()),

@@ -13,9 +13,9 @@ pub(crate) struct KafkyMetadata {
 
 impl<'a> KafkyClient<'a> {
     pub fn get_metadata(&self, topic: Option<&str>) -> Result<KafkyMetadata, KafkyError> {
-        let consumer = self.get_util_consumer()?;
-        let metadata_response =
-            consumer.fetch_metadata(topic, Timeout::from(Duration::from_millis(30000)))?;
+        let metadata_response = self
+            .get_util_consumer()?
+            .fetch_metadata(topic, Timeout::from(Duration::from_millis(30000)))?;
 
         Ok(KafkyMetadata {
             topics: metadata_response

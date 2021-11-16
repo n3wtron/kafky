@@ -11,18 +11,20 @@ impl<'a> KafkyClient<'a> {
             "getting latest offset for topic:{}, partition:{}",
             topic, partition
         );
-        let consumer = self.get_util_consumer()?;
-        let latest_offset =
-            match consumer.fetch_watermarks(topic, partition, Duration::from_secs(30)) {
-                Ok((_, latest_offset)) => latest_offset,
-                Err(e) => {
-                    error!(
-                        "Error getting latest offset for topic:{}, partition:{}. {}",
-                        topic, partition, e
-                    );
-                    0
-                }
-            };
+        let latest_offset = match self.get_util_consumer()?.fetch_watermarks(
+            topic,
+            partition,
+            Duration::from_secs(30),
+        ) {
+            Ok((_, latest_offset)) => latest_offset,
+            Err(e) => {
+                error!(
+                    "Error getting latest offset for topic:{}, partition:{}. {}",
+                    topic, partition, e
+                );
+                0
+            }
+        };
         debug!(
             "latest offset for topic:{}, partition:{} = {}",
             topic, partition, &latest_offset
