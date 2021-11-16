@@ -9,6 +9,7 @@ use crate::cmd::get::GetCmd;
 use crate::cmd::produce::ProduceCmd;
 use crate::{KafkyClient, KafkyError};
 use crate::cmd::create::CreateCmd;
+use crate::cmd::delete::DeleteCmd;
 
 pub struct RootCmd {}
 
@@ -45,6 +46,7 @@ impl RootCmd {
             .subcommand(ConsumeCmd::command())
             .subcommand(ConfigCmd::command())
             .subcommand(CreateCmd::command())
+            .subcommand(DeleteCmd::command())
     }
 
     pub async fn exec<'a>(app_matches: ArgMatches<'a>, config: &'a KafkyConfig<'a>) -> Result<(), KafkyError> {
@@ -57,6 +59,7 @@ impl RootCmd {
             ("consume", Some(matches)) => ConsumeCmd::exec(matches, kafky_client.clone()),
             ("config", Some(matches)) => ConfigCmd::exec(matches, config.path()),
             ("create", Some(matches)) => CreateCmd::exec(matches, kafky_client.clone()).await,
+            ("delete", Some(matches)) => DeleteCmd::exec(matches, kafky_client.clone()).await,
             (_, _) => Err(KafkyError::InvalidCommand()),
         }
     }

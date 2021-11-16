@@ -2,7 +2,7 @@ use crate::{KafkyClient, KafkyError};
 use rdkafka::admin::{AdminOptions, NewTopic, TopicReplication};
 
 impl<'a> KafkyClient<'a> {
-    pub async fn create_topic(
+    pub async fn create_topics(
         &self,
         topic_names: &Vec<&str>,
         partitions: i32,
@@ -20,6 +20,13 @@ impl<'a> KafkyClient<'a> {
             .collect();
         self.get_admin_client()?
             .create_topics(new_topics.as_slice(), &AdminOptions::new())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_topics(&self, topic_names: &Vec<&str>) -> Result<(), KafkyError> {
+        self.get_admin_client()?
+            .delete_topics(topic_names, &AdminOptions::new())
             .await?;
         Ok(())
     }

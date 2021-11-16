@@ -57,11 +57,10 @@ impl CreateCmd {
                 .expect("invalid replication-factor value");
 
             let metadata = kafky_client.get_metadata(None)?;
-            let existent_topic_names: Vec<&str> =
-                metadata.topics.iter().map(|topic| topic.name()).collect();
+            let existent_topic_names: Vec<String> = metadata.topic_names();
             let topics_to_create: Vec<&str> = topic_names
                 .iter()
-                .filter(|new_topic| !existent_topic_names.contains(new_topic))
+                .filter(|new_topic| !existent_topic_names.contains(&new_topic.to_string()))
                 .copied()
                 .collect();
             existent_topic_names
@@ -72,7 +71,7 @@ impl CreateCmd {
                 });
             if !topics_to_create.is_empty() {
                 kafky_client
-                    .create_topic(&topics_to_create, partitions, replication_factor)
+                    .create_topics(&topics_to_create, partitions, replication_factor)
                     .await?;
                 topics_to_create
                     .iter()
