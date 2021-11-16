@@ -87,7 +87,7 @@ impl ConsumeCmd {
                         let mut row = String::new();
                         if topics.len() > 1 {
                             row.push_str(msg.topic());
-                            row.push_str("-> ");
+                            row.push_str(" -> ");
                         }
                         if app_matches.is_present("timestamp") {
                             row.push_str("[");

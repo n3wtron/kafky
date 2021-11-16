@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use log::debug;
+use rdkafka::admin::AdminClient;
+use rdkafka::client::DefaultClientContext;
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::BaseConsumer;
 use rdkafka::producer::BaseProducer;
@@ -15,6 +17,7 @@ pub(crate) struct KafkyClient<'a> {
     credential: String,
     producer: Mutex<Option<Arc<BaseProducer>>>,
     util_consumer: Mutex<Option<Arc<BaseConsumer>>>,
+    admin_client: Mutex<Option<Arc<AdminClient<DefaultClientContext>>>>,
 }
 
 impl<'a> KafkyClient<'a> {
@@ -25,6 +28,7 @@ impl<'a> KafkyClient<'a> {
             credential,
             producer: Mutex::new(None),
             util_consumer: Mutex::new(None),
+            admin_client: Mutex::new(None),
         }
     }
 
@@ -146,6 +150,22 @@ impl<'a> KafkyClient<'a> {
                 Ok(consumer)
             }
             Some(consumer) => Ok(consumer.clone()),
+        }
+    }
+
+    pub(super) fn get_admin_client(
+        &self,
+    ) -> Result<Arc<AdminClient<DefaultClientContext>>, KafkyError> {
+        let mut mtx_consumer = self.admin_client.lock().unwrap();
+        let admin_client = (*mtx_consumer).as_ref();
+        match admin_client {
+            None => {
+                let client: Arc<AdminClient<DefaultClientContext>> =
+                    Arc::new(self.config_builder().create()?);
+                *mtx_consumer = Some(client.clone());
+                Ok(client)
+            }
+            Some(client) => Ok(client.clone()),
         }
     }
 }

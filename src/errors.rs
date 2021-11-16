@@ -7,8 +7,6 @@ use std::str;
 
 #[derive(Debug, Error)]
 pub enum KafkyError {
-    #[error("home folder not found")]
-    HomeFolderNotFound(),
     #[error("Configuration not found: {0}")]
     ConfigurationNotFound(String),
     #[error("Invalid configuration {0}")]

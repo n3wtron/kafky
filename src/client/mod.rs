@@ -4,3 +4,4 @@ mod metadata;
 mod producer;
 pub mod consumer_group;
 mod offset;
+mod admin;

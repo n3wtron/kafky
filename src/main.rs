@@ -11,16 +11,17 @@ mod cmd;
 mod config;
 mod errors;
 
-fn main() -> Result<(), errors::KafkyError> {
+#[tokio::main]
+async fn main() -> Result<(), errors::KafkyError> {
     env_logger::init();
 
-    let mut config_path = home::home_dir().ok_or(KafkyError::HomeFolderNotFound())?;
+    let mut config_path = home::home_dir().expect("impossible to get the home folder");
     debug!("home folder:{:?}", config_path);
     config_path.push(".kafky/config.yml");
 
-    let cfg = load_config_or_create(&config_path)?;
+    let cfg = load_config_or_create(&config_path).expect("configuration not found");
 
-    RootCmd::exec(RootCmd::command(&cfg).get_matches(), &cfg)
+    RootCmd::exec(RootCmd::command(&cfg).get_matches(), &cfg).await
 }
 
 fn load_config_or_create(config_path: &Path) -> Result<KafkyConfig, KafkyError> {

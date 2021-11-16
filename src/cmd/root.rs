@@ -8,6 +8,7 @@ use crate::cmd::consume::ConsumeCmd;
 use crate::cmd::get::GetCmd;
 use crate::cmd::produce::ProduceCmd;
 use crate::{KafkyClient, KafkyError};
+use crate::cmd::create::CreateCmd;
 
 pub struct RootCmd {}
 
@@ -43,9 +44,10 @@ impl RootCmd {
             .subcommand(ProduceCmd::command())
             .subcommand(ConsumeCmd::command())
             .subcommand(ConfigCmd::command())
+            .subcommand(CreateCmd::command())
     }
 
-    pub fn exec(app_matches: ArgMatches, config: &KafkyConfig) -> Result<(), KafkyError> {
+    pub async fn exec<'a>(app_matches: ArgMatches<'a>, config: &'a KafkyConfig<'a>) -> Result<(), KafkyError> {
         let environment = String::from(app_matches.value_of("environment").unwrap());
         let credential = Self::extract_credential(&app_matches, config, &environment)?;
         let kafky_client = Arc::new(KafkyClient::new(config, environment, credential));
@@ -54,6 +56,7 @@ impl RootCmd {
             ("produce", Some(matches)) => ProduceCmd::exec(matches, kafky_client.clone()),
             ("consume", Some(matches)) => ConsumeCmd::exec(matches, kafky_client.clone()),
             ("config", Some(matches)) => ConfigCmd::exec(matches, config.path()),
+            ("create", Some(matches)) => CreateCmd::exec(matches, kafky_client.clone()).await,
             (_, _) => Err(KafkyError::InvalidCommand()),
         }
     }

@@ -36,7 +36,7 @@ impl ProduceCmd {
     ) -> Result<(), KafkyError> {
         let topic = app_matches.value_of("topic").unwrap();
         let metadata = kafky_client.get_metadata(Some(topic))?;
-        if !metadata.topics.contains(&topic.to_string()) {
+        if !metadata.topic_names().contains(&topic.to_string()) {
             return Err(KafkyError::TopicNotFound(topic.to_string()));
         }
         let mut read_line = String::new();
@@ -44,7 +44,7 @@ impl ProduceCmd {
         let mut key: Option<String>;
 
         loop {
-            print!("{}> ", topic);
+            print!("{} <- ", topic);
             io::stdout().flush().unwrap();
             read_line.clear();
             match io::stdin().read_line(&mut read_line) {
