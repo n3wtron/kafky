@@ -85,7 +85,7 @@ impl<'a> KafkyClient<'a> {
                             self.environment, self.credential
                         ));
                         let pem = String::from_utf8(decoded_pem).unwrap();
-                        client_config_builder.set("ssl.ca.pem", pem);
+                        client_config_builder.set("ssl.certificate.pem", pem);
                     }
                     KafkyPEM::PEM(pem) => {
                         client_config_builder.set("ssl.certificate.pem", pem);
@@ -101,7 +101,7 @@ impl<'a> KafkyClient<'a> {
                             self.environment, self.credential
                         ));
                         let pem = String::from_utf8(decoded_pem).unwrap();
-                        client_config_builder.set("ssl.ca.pem", pem);
+                        client_config_builder.set("ssl.key.pem", pem);
                     }
                     KafkyPEM::PEM(pem) => {
                         client_config_builder.set("ssl.key.pem", pem);
