@@ -19,9 +19,12 @@ impl<'a> KafkyClient<'a> {
             record = record.key(key.as_ref().unwrap());
         }
         record = record.payload(&payload);
-        self.get_producer()?
-            .send(record)
-            .expect("message was not sent");
-        Ok(())
+        match self.get_producer()?.send(record) {
+            Ok(_) => {
+                debug!("Message sent");
+                Ok(())
+            }
+            Err(err) => Err(err.0.into()),
+        }
     }
 }
