@@ -36,18 +36,22 @@ impl<'a> KafkyClient<'a> {
         let environment = self
             .kafky_config
             .get_environment(&self.environment)
-            .ok_or(KafkyError::EnvironmentNotFound(
-                self.environment.to_string(),
-                self.kafky_config.get_environment_names().join(","),
-            ))
+            .ok_or_else(|| {
+                KafkyError::EnvironmentNotFound(
+                    self.environment.to_string(),
+                    self.kafky_config.get_environment_names().join(","),
+                )
+            })
             .unwrap();
         let credential = environment
             .get_credential(&self.credential)
-            .ok_or(KafkyError::CredentialNotFound(
-                self.credential.to_string(),
-                self.environment.to_string(),
-                environment.get_credential_names().join(","),
-            ))
+            .ok_or_else(|| {
+                KafkyError::CredentialNotFound(
+                    self.credential.to_string(),
+                    self.environment.to_string(),
+                    environment.get_credential_names().join(","),
+                )
+            })
             .unwrap();
 
         let brokers = environment.brokers.join(",");
@@ -57,13 +61,13 @@ impl<'a> KafkyClient<'a> {
         debug!("{:?}", client_config_builder);
 
         match &credential.credential {
-            KafkyCredentialKind::SSL(ssl_cred) => {
+            KafkyCredentialKind::Ssl(ssl_cred) => {
                 client_config_builder.set("security.protocol", "ssl");
                 match &ssl_cred.truststore {
-                    KafkyPEM::PATH(path) => {
+                    KafkyPEM::Path(path) => {
                         client_config_builder.set("ssl.ca.location", path);
                     }
-                    KafkyPEM::BASE64(b64) => {
+                    KafkyPEM::Base64(b64) => {
                         let decoded_pem = base64::decode(b64).expect(&*format!(
                             "Invalid truststore base64 for the environment:{} credential:{}",
                             self.environment, self.credential
@@ -71,15 +75,15 @@ impl<'a> KafkyClient<'a> {
                         let pem = String::from_utf8(decoded_pem).unwrap();
                         client_config_builder.set("ssl.ca.pem", pem);
                     }
-                    KafkyPEM::PEM(pem) => {
+                    KafkyPEM::Pem(pem) => {
                         client_config_builder.set("ssl.ca.pem", pem);
                     }
                 }
                 match &ssl_cred.certificate {
-                    KafkyPEM::PATH(path) => {
+                    KafkyPEM::Path(path) => {
                         client_config_builder.set("ssl.certificate.location", path);
                     }
-                    KafkyPEM::BASE64(b64) => {
+                    KafkyPEM::Base64(b64) => {
                         let decoded_pem = base64::decode(b64).expect(&*format!(
                             "Invalid certificate base64 for the environment:{} credential:{}",
                             self.environment, self.credential
@@ -87,15 +91,15 @@ impl<'a> KafkyClient<'a> {
                         let pem = String::from_utf8(decoded_pem).unwrap();
                         client_config_builder.set("ssl.certificate.pem", pem);
                     }
-                    KafkyPEM::PEM(pem) => {
+                    KafkyPEM::Pem(pem) => {
                         client_config_builder.set("ssl.certificate.pem", pem);
                     }
                 }
                 match &ssl_cred.private_key.key {
-                    KafkyPEM::PATH(path) => {
+                    KafkyPEM::Path(path) => {
                         client_config_builder.set("ssl.key.location", path);
                     }
-                    KafkyPEM::BASE64(b64) => {
+                    KafkyPEM::Base64(b64) => {
                         let decoded_pem = base64::decode(b64).expect(&*format!(
                             "Invalid private key base64 for the environment:{} credential:{}",
                             self.environment, self.credential
@@ -103,7 +107,7 @@ impl<'a> KafkyClient<'a> {
                         let pem = String::from_utf8(decoded_pem).unwrap();
                         client_config_builder.set("ssl.key.pem", pem);
                     }
-                    KafkyPEM::PEM(pem) => {
+                    KafkyPEM::Pem(pem) => {
                         client_config_builder.set("ssl.key.pem", pem);
                     }
                 }
@@ -114,7 +118,7 @@ impl<'a> KafkyClient<'a> {
                     }
                 }
             }
-            KafkyCredentialKind::PLAIN(plain_creds) => {
+            KafkyCredentialKind::Plain(plain_creds) => {
                 client_config_builder.set("security.protocol", "plaintext");
                 client_config_builder.set("sasl.username", &plain_creds.username);
                 client_config_builder.set("sasl.password", &plain_creds.password);

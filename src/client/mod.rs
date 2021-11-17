@@ -1,7 +1,7 @@
+mod admin;
 pub mod consumer;
+pub mod consumer_group;
 pub mod kafky_client;
 mod metadata;
-mod producer;
-pub mod consumer_group;
 mod offset;
-mod admin;
+mod producer;

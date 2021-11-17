@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::{stdout, Write};
 use std::sync::{Arc, Mutex};
 
-use clap::{App, Arg, ArgMatches, SubCommand, Values};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use log::error;
 
 use crate::client::kafky_client::KafkyClient;
@@ -69,11 +69,11 @@ impl GetConsumerGroupsCmd {
             .unwrap();
         let group_filter: Vec<&str> = consumer_groups_args
             .values_of("groups")
-            .unwrap_or(Values::default())
+            .unwrap_or_default()
             .collect();
         let topic_filter: Vec<&str> = consumer_groups_args
             .values_of("topics")
-            .unwrap_or(Values::default())
+            .unwrap_or_default()
             .collect();
         let output_format: &str = consumer_groups_args.value_of("format").unwrap();
 
@@ -97,7 +97,7 @@ impl GetConsumerGroupsCmd {
                     .flat_map(|topics_tpl| {
                         topics_tpl.1.iter().map(|partition_tpl| {
                             let mut cache = latest_offset_map_mtx.lock().unwrap();
-                            let latest_offset = Self::get_latest_offset(
+                            let latest_offset = Self::latest_offset(
                                 &mut *cache,
                                 topics_tpl.0,
                                 partition_tpl.0,
@@ -125,7 +125,7 @@ impl GetConsumerGroupsCmd {
         Ok(())
     }
 
-    fn get_latest_offset<'b, 'c>(
+    fn latest_offset<'b, 'c>(
         latest_offset_map: &'b mut HashMap<(String, i32), i64>,
         topic: &'c str,
         partition: &i32,
@@ -140,19 +140,19 @@ impl GetConsumerGroupsCmd {
             })
     }
 
-    fn print_json(rows: &Vec<ConsumerGroupRow>) {
+    fn print_json(rows: &[ConsumerGroupRow]) {
         println!("{}", serde_json::to_string(rows).expect("invalid json"))
     }
 
-    fn print_table(rows: &Vec<ConsumerGroupRow>) {
+    fn print_table(rows: &[ConsumerGroupRow]) {
         let mut result_table = tabwriter::TabWriter::new(vec![]);
         result_table
-            .write(b"GROUP\tTOPIC\tPARTITION\tOFFSET\tLAG\n")
+            .write_all(b"GROUP\tTOPIC\tPARTITION\tOFFSET\tLAG\n")
             .expect("error creating table header");
 
         for row in rows {
             result_table
-                .write(
+                .write_all(
                     format!(
                         "{}\t{}\t{}\t{}\t{}\n",
                         row.group, row.topic, row.partition, row.offset, row.lag
@@ -163,7 +163,7 @@ impl GetConsumerGroupsCmd {
         }
         result_table.flush().expect("error printing table");
         stdout()
-            .write(&result_table.into_inner().unwrap())
+            .write_all(&result_table.into_inner().unwrap())
             .expect("error printing table");
     }
 }

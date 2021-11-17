@@ -71,16 +71,19 @@ impl KafkyConsumerGroup {
     }
 
     fn update_topic_partition(&mut self, topic_name: String, partition: i32, offset: i64) {
-        let topic_partition = self.topics.get_mut(&topic_name);
-        if topic_partition.is_none() {
-            let topic_partition_map = HashMap::from([(partition, offset)]);
-            self.topics.insert(topic_name, topic_partition_map);
-        } else {
-            topic_partition.unwrap().insert(partition, offset);
+        let opt_topic_partition = self.topics.get_mut(&topic_name);
+        match opt_topic_partition {
+            None => {
+                let topic_partition_map = HashMap::from([(partition, offset)]);
+                self.topics.insert(topic_name, topic_partition_map);
+            }
+            Some(topic_partition) => {
+                topic_partition.insert(partition, offset);
+            }
         }
     }
 
-    fn delete_topic_partition(&mut self, topic_name: &String, partition: &i32) {
+    fn delete_topic_partition(&mut self, topic_name: &str, partition: &i32) {
         if let Some(topic_partition) = self.topics.get_mut(topic_name) {
             topic_partition.remove(partition);
         }
@@ -138,16 +141,17 @@ impl<'a> KafkyClient<'a> {
                             offset,
                         } => {
                             let opt_consumer_group = result.get_mut(&group);
-                            if opt_consumer_group.is_none() {
-                                result.insert(
-                                    group.clone(),
-                                    KafkyConsumerGroup::new(group, topic, partition, offset),
-                                );
-                            } else {
-                                opt_consumer_group
-                                    .unwrap()
-                                    .update_topic_partition(topic, partition, offset);
-                            }
+                            match opt_consumer_group {
+                                None => {
+                                    result.insert(
+                                        group.clone(),
+                                        KafkyConsumerGroup::new(group, topic, partition, offset),
+                                    );
+                                }
+                                Some(consumer_group) => {
+                                    consumer_group.update_topic_partition(topic, partition, offset);
+                                }
+                            };
                             true
                         }
                         ConsumerUpdate::DeleteCommit {

@@ -98,7 +98,7 @@ impl<'a> KafkyClient<'a> {
         debug!("Consumer properties: {:?}", &consumer_builder);
         let consumer: BaseConsumer = consumer_builder.create()?;
         consumer
-            .subscribe(&properties.topics)
+            .subscribe(properties.topics)
             .expect("subscribe error");
         info!("subscription properties {:?}", properties);
         let start_time = Instant::now();

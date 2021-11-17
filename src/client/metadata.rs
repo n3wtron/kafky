@@ -5,17 +5,17 @@ use rdkafka::metadata::{MetadataPartition, MetadataTopic};
 use rdkafka::util::Timeout;
 
 use crate::{KafkyClient, KafkyError};
-use serde::{Serialize};
+use serde::Serialize;
 
-#[derive(Debug,Serialize)]
+#[derive(Debug, Serialize)]
 pub(crate) struct KafkyPartition {
-    id:i32,
+    id: i32,
     leader: i32,
     replicas: Vec<i32>,
     isrs: Vec<i32>,
 }
 
-impl KafkyPartition{
+impl KafkyPartition {
     pub fn id(&self) -> i32 {
         self.id
     }
@@ -41,7 +41,7 @@ impl From<&MetadataPartition> for KafkyPartition {
     }
 }
 
-#[derive(Debug,Serialize)]
+#[derive(Debug, Serialize)]
 pub(crate) struct KafkyTopic {
     name: String,
     partitions: Vec<KafkyPartition>,
@@ -69,7 +69,7 @@ impl From<&MetadataTopic> for KafkyTopic {
     }
 }
 
-#[derive(Debug,Serialize)]
+#[derive(Debug, Serialize)]
 pub(crate) struct KafkyMetadata {
     pub topics: Vec<KafkyTopic>,
     pub brokers: Vec<String>,

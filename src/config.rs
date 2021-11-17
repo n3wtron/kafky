@@ -20,9 +20,9 @@ pub struct KafkyPrivateKey {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum KafkyPEM {
-    PATH(String),
-    BASE64(String),
-    PEM(String),
+    Path(String),
+    Base64(String),
+    Pem(String),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -42,8 +42,8 @@ pub struct KafkyPlainCredential {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum KafkyCredentialKind {
-    SSL(KafkySSLCredential),
-    PLAIN(KafkyPlainCredential),
+    Ssl(KafkySSLCredential),
+    Plain(KafkyPlainCredential),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -61,7 +61,7 @@ pub struct KafkyEnvironment {
 }
 
 impl KafkyEnvironment {
-    pub fn get_credential(&self, credential: &String) -> Option<&KafkyCredential> {
+    pub fn get_credential(&self, credential: &str) -> Option<&KafkyCredential> {
         self.credentials.iter().find(|c| c.name.eq(credential))
     }
 
@@ -71,7 +71,7 @@ impl KafkyEnvironment {
 }
 
 fn empty_path<'a>() -> &'a Path {
-    Path::new("").as_ref()
+    Path::new("")
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -92,17 +92,17 @@ impl<'a> KafkyConfig<'a> {
         }
         let mut cfg = Config::default();
         debug!("loading configuration {:?}", &config_file);
-        cfg.merge(File::from(config_file.clone()))?;
+        cfg.merge(File::from(config_file))?;
 
         cfg.try_into::<KafkyConfig>()
-            .map(|mut kcfg| {
-                kcfg.path = config_file;
-                kcfg
+            .map(|mut kafky_cfg| {
+                kafky_cfg.path = config_file;
+                kafky_cfg
             })
             .map_err(|e| e.into())
     }
 
-    pub fn get_environment(&self, environment: &String) -> Option<&KafkyEnvironment> {
+    pub fn get_environment(&self, environment: &str) -> Option<&KafkyEnvironment> {
         self.environments.iter().find(|e| e.name.eq(environment))
     }
 
@@ -121,15 +121,15 @@ impl<'a> KafkyConfig<'a> {
             credentials: vec![
                 KafkyCredential {
                     name: "plain-cred".to_string(),
-                    credential: KafkyCredentialKind::PLAIN(KafkyPlainCredential {
+                    credential: KafkyCredentialKind::Plain(KafkyPlainCredential {
                         username: "kafka-user".to_string(),
                         password: "kafka-password".to_string(),
                     }),
                 },
                 KafkyCredential {
                     name: "ssl-cred".to_string(),
-                    credential: KafkyCredentialKind::SSL(KafkySSLCredential {
-                        truststore: KafkyPEM::PEM(
+                    credential: KafkyCredentialKind::Ssl(KafkySSLCredential {
+                        truststore: KafkyPEM::Pem(
                             "-----BEGIN CERTIFICATE-----\
                     DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
                     DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
@@ -140,9 +140,9 @@ impl<'a> KafkyConfig<'a> {
                     "
                             .to_string(),
                         ),
-                        certificate: KafkyPEM::PATH("/my.cert.pem".to_string()),
+                        certificate: KafkyPEM::Path("/my.cert.pem".to_string()),
                         private_key: KafkyPrivateKey {
-                            key: KafkyPEM::BASE64("bXkgcHJpdmF0ZSBrZXk=".to_string()),
+                            key: KafkyPEM::Base64("bXkgcHJpdmF0ZSBrZXk=".to_string()),
                             password: Some("my-cert-password".to_string()),
                         },
                     }),
@@ -162,9 +162,7 @@ impl<'a> KafkyConfig<'a> {
         Ok(())
     }
 
-    pub fn create_configuration_sample(
-        config_file: &'a Path,
-    ) -> Result<KafkyConfig, KafkyError> {
+    pub fn create_configuration_sample(config_file: &'a Path) -> Result<KafkyConfig, KafkyError> {
         print!(
             "Configuration file {} not found, do you want to create a sample one? [y/N]: ",
             config_file.display()
@@ -180,7 +178,7 @@ impl<'a> KafkyConfig<'a> {
             println!("creating sample..");
             Self::create_sample(config_file)?;
             let cfg = Self::load(config_file)?;
-            return Ok(cfg);
+            Ok(cfg)
         } else {
             Err(KafkyError::ConfigurationNotFound(
                 config_file.as_os_str().to_str().unwrap().to_string(),

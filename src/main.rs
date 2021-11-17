@@ -40,12 +40,12 @@ async fn main() -> Result<(), String> {
 }
 
 fn load_config_or_create(config_path: &Path) -> Result<KafkyConfig, KafkyError> {
-    match config::KafkyConfig::load(&config_path) {
+    match config::KafkyConfig::load(config_path) {
         Ok(config) => Ok(config),
         Err(e) => match e {
             KafkyError::ConfigurationNotFound(_) => {
-                match KafkyConfig::create_configuration_sample(&config_path) {
-                    Ok(cfg) => ConfigCmd::open_editor(&config_path).map(|_| cfg),
+                match KafkyConfig::create_configuration_sample(config_path) {
+                    Ok(cfg) => ConfigCmd::open_editor(config_path).map(|_| cfg),
                     Err(e2) => Err(e2),
                 }
             }

@@ -50,16 +50,25 @@ impl ConsumeCmd {
                     .long("timestamp")
                     .help("print timestamp message (works only with text format)"),
             )
-            .arg(Arg::with_name("earliest").long("earliest").help("read from the earliest offset").group("offset"))
-            .arg(Arg::with_name("latest").long("latest").help("read from the latest offset (default)").group("offset"))
-
+            .arg(
+                Arg::with_name("earliest")
+                    .long("earliest")
+                    .help("read from the earliest offset")
+                    .group("offset"),
+            )
+            .arg(
+                Arg::with_name("latest")
+                    .long("latest")
+                    .help("read from the latest offset (default)")
+                    .group("offset"),
+            )
     }
 
     pub fn exec(
         app_matches: &ArgMatches<'_>,
         kafky_client: Arc<KafkyClient>,
     ) -> Result<(), KafkyError> {
-        let format: &str = app_matches.value_of("format").unwrap().into();
+        let format: &str = app_matches.value_of("format").unwrap();
         let topics: Vec<&str> = app_matches.values_of("topic").unwrap().collect();
         kafky_client.consume::<str, str, _>(
             &KafkyConsumeProperties {
@@ -82,11 +91,11 @@ impl ConsumeCmd {
                             row.push_str(" -> ");
                         }
                         if app_matches.is_present("timestamp") {
-                            row.push_str("[");
+                            row.push('[');
                             row.push_str(
                                 &msg.timestamp()
                                     .map(|t| t.to_rfc3339())
-                                    .unwrap_or(String::from("NO-TS")),
+                                    .unwrap_or_else(|| String::from("NO-TS")),
                             );
                             row.push_str("] ");
                         }

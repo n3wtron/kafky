@@ -4,7 +4,7 @@ use rdkafka::admin::{AdminOptions, NewTopic, TopicReplication};
 impl<'a> KafkyClient<'a> {
     pub async fn create_topics(
         &self,
-        topic_names: &Vec<&str>,
+        topic_names: &'a [&'a str],
         partitions: i32,
         replication_factor: i32,
     ) -> Result<(), KafkyError> {
@@ -24,7 +24,7 @@ impl<'a> KafkyClient<'a> {
         Ok(())
     }
 
-    pub async fn delete_topics(&self, topic_names: &Vec<&str>) -> Result<(), KafkyError> {
+    pub async fn delete_topics(&self, topic_names: &'a [&'a str]) -> Result<(), KafkyError> {
         self.get_admin_client()?
             .delete_topics(topic_names, &AdminOptions::new())
             .await?;

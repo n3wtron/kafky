@@ -1,9 +1,8 @@
-
-use std::io;
 use config::ConfigError;
 use rdkafka::error::KafkaError;
-use thiserror::Error;
+use std::io;
 use std::str;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum KafkyError {

@@ -9,7 +9,7 @@ use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 use std::option::Option;
 
-pub(crate) struct ProduceCmd{}
+pub(crate) struct ProduceCmd {}
 
 impl ProduceCmd {
     pub fn command<'a>() -> App<'a, 'a> {
@@ -67,7 +67,7 @@ impl ProduceCmd {
                         payload = &read_line;
                     }
 
-                    match kafky_client.produce(&topic, key, payload.to_string()) {
+                    match kafky_client.produce(topic, key, payload.to_string()) {
                         Ok(_) => {
                             debug!("message sent to topic {}", topic)
                         }

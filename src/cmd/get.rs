@@ -27,7 +27,9 @@ impl GetCmd {
         if let Some(get_consumer_groups_args) = app_matches.subcommand_matches("consumer-groups") {
             return GetConsumerGroupsCmd::exec(get_consumer_groups_args, kafky_client);
         }
-        Self::command().print_help().expect("error printing get helpl");
+        Self::command()
+            .print_help()
+            .expect("error printing get help");
         Ok(())
     }
 }

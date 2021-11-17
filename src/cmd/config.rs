@@ -15,7 +15,7 @@ impl ConfigCmd {
     }
 
     pub(super) fn exec(app_matches: &ArgMatches, config_file: &Path) -> Result<(), KafkyError> {
-        if let Some(_) = app_matches.subcommand_matches("edit") {
+        if app_matches.subcommand_matches("edit").is_some() {
             return Self::open_editor(config_file);
         }
         Self::command().print_help().expect("error printing help");
@@ -29,10 +29,10 @@ impl ConfigCmd {
         stdin().read_line(&mut answer).unwrap();
         let mut open_cmd = answer;
         open_cmd.pop();
-        open_cmd.push_str(" ");
+        open_cmd.push(' ');
         open_cmd.push_str(config_file.as_os_str().to_str().unwrap());
 
-        let sh_path = which::which("sh").expect(&*format!("bash (sh) not found"));
+        let sh_path = which::which("sh").expect(&*"bash (sh) not found".to_string());
 
         let mut editor_cmd = Command::new(sh_path);
         let final_editor_cmd = editor_cmd.arg("-c").arg(open_cmd);

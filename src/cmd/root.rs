@@ -81,24 +81,29 @@ impl RootCmd {
     fn extract_credential(
         app_matches: &ArgMatches,
         config: &KafkyConfig,
-        environment: &String,
+        environment: &str,
     ) -> Result<String, KafkyError> {
         app_matches
             .value_of("credential")
             .map(|cred| cred.to_string())
-            .or(config.get_environment(environment).and_then(|e| {
-                if e.credentials.len() == 1 {
-                    let first_credential = e.credentials.first().map(|c| c.name.clone()).unwrap();
-                    Some(first_credential)
-                } else {
-                    None
-                }
-            }))
-            .ok_or(KafkyError::NoCredentialSpecified(
-                config
-                    .get_environment(environment)
-                    .map(|e| e.get_credential_names().join(","))
-                    .unwrap()
-            ))
+            .or_else(|| {
+                config.get_environment(environment).and_then(|e| {
+                    if e.credentials.len() == 1 {
+                        let first_credential =
+                            e.credentials.first().map(|c| c.name.clone()).unwrap();
+                        Some(first_credential)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .ok_or_else(|| {
+                KafkyError::NoCredentialSpecified(
+                    config
+                        .get_environment(environment)
+                        .map(|e| e.get_credential_names().join(","))
+                        .unwrap(),
+                )
+            })
     }
 }

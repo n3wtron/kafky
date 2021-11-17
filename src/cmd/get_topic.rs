@@ -40,12 +40,12 @@ impl GetTopicCmd {
         if format == "table" {
             let mut result_table = tabwriter::TabWriter::new(vec![]);
             result_table
-                .write(b"TOPIC\tPARTITION\tLEADER\tISR\tREPLICAS\n")
+                .write_all(b"TOPIC\tPARTITION\tLEADER\tISR\tREPLICAS\n")
                 .expect("error creating table header");
             for topic in kafky_client.get_metadata(None)?.topics {
                 for partition in topic.partitions() {
                     result_table
-                        .write(
+                        .write_all(
                             format!(
                                 "{}\t{}\t{}\t{}\t{}\n",
                                 topic.name(),
@@ -71,7 +71,7 @@ impl GetTopicCmd {
             }
             result_table.flush().expect("error flushing table");
             stdout()
-                .write(&result_table.into_inner().unwrap())
+                .write_all(&result_table.into_inner().unwrap())
                 .expect("error printing table");
         }
         Ok(())
