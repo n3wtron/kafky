@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::{stdout, Write};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use log::error;
@@ -58,9 +58,9 @@ impl GetConsumerGroupsCmd {
             )
     }
 
-    pub fn exec(
-        consumer_groups_args: &ArgMatches,
-        kafky_client: Arc<KafkyClient>,
+    pub async fn exec<'a>(
+        consumer_groups_args: &'a ArgMatches<'a>,
+        kafky_client: &'a KafkyClient<'a>,
     ) -> Result<(), KafkyError> {
         let timeout: u64 = consumer_groups_args
             .value_of("timeout")
@@ -77,7 +77,7 @@ impl GetConsumerGroupsCmd {
             .collect();
         let output_format: &str = consumer_groups_args.value_of("format").unwrap();
 
-        let consumer_groups = kafky_client.get_consumer_groups(timeout)?;
+        let consumer_groups = kafky_client.get_consumer_groups(timeout).await?;
 
         // (topic,partition) -> latest offset
         let latest_offset_map_mtx: Mutex<HashMap<(String, i32), i64>> = Mutex::new(HashMap::new());
@@ -101,7 +101,7 @@ impl GetConsumerGroupsCmd {
                                 &mut *cache,
                                 topics_tpl.0,
                                 partition_tpl.0,
-                                &kafky_client,
+                                kafky_client,
                             );
                             ConsumerGroupRow {
                                 group: consumer_group_tpl.1.group(),

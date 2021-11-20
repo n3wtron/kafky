@@ -1,6 +1,5 @@
 use std::io;
 use std::io::Write;
-use std::sync::Arc;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use log::{debug, error};
@@ -30,9 +29,9 @@ impl ProduceCmd {
                     .takes_value(true),
             )
     }
-    pub fn exec(
-        app_matches: &ArgMatches,
-        kafky_client: Arc<KafkyClient>,
+    pub async fn exec<'a>(
+        app_matches: &'a ArgMatches<'a>,
+        kafky_client: &'a KafkyClient<'a>,
     ) -> Result<(), KafkyError> {
         let topic = app_matches.value_of("topic").unwrap();
         let metadata = kafky_client.get_metadata(Some(topic))?;
@@ -48,11 +47,11 @@ impl ProduceCmd {
             io::stdout().flush().unwrap();
             read_line.clear();
             match io::stdin().read_line(&mut read_line) {
-                Ok(size) => {
-                    if size == 0 {
+                Ok(_) => {
+                    read_line.pop();
+                    if read_line.is_empty() {
                         break;
                     }
-                    read_line.pop();
 
                     if let Some(key_separator) = app_matches.value_of("key-separator") {
                         let key_payload: Vec<&str> = read_line.split(key_separator).collect();

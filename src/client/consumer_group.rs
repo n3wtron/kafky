@@ -5,7 +5,9 @@ use log::debug;
 use std::collections::HashMap;
 use std::io::{BufRead, Cursor};
 use std::str;
-use std::time::Duration;
+use tokio::sync::oneshot;
+use tokio::time;
+use tokio::time::Duration;
 
 #[derive(Debug)]
 enum ConsumerUpdate {
@@ -99,12 +101,20 @@ impl KafkyConsumerGroup {
 }
 
 impl<'a> KafkyClient<'a> {
-    pub fn get_consumer_groups(
+    pub async fn get_consumer_groups(
         &self,
         timeout_sec: u64,
     ) -> Result<HashMap<String, KafkyConsumerGroup>, KafkyError> {
         let mut result: HashMap<String, KafkyConsumerGroup> = HashMap::new();
 
+        let (timeout_tx, timeout_rx) = oneshot::channel();
+
+        tokio::spawn(async move {
+            time::sleep(Duration::from_secs(timeout_sec)).await;
+            timeout_tx.send(true).expect("error timeout signal");
+        });
+
+        // Some(Duration::from_secs(timeout_sec))
         self.consume::<[u8], [u8], _>(
             &KafkyConsumeProperties {
                 topics: &vec!["__consumer_offsets"],
@@ -112,7 +122,7 @@ impl<'a> KafkyClient<'a> {
                 offset: KafkyConsumerOffset::Earliest,
                 auto_commit: false,
             },
-            Some(Duration::from_secs(timeout_sec)),
+            Some(timeout_rx),
             |consumer_offset_msg_res| {
                 let msg = consumer_offset_msg_res.unwrap();
                 let mut key_rdr = Cursor::new(msg.key().unwrap());
@@ -168,7 +178,8 @@ impl<'a> KafkyClient<'a> {
                     Err(_) => false,
                 }
             },
-        )?;
+        )
+        .await?;
 
         Ok(result)
     }

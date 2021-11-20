@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use crate::config::KafkyConfig;
 use clap::{App, Arg, ArgMatches};
 use log::debug;
+use tokio::signal;
 
 use crate::cmd::config::ConfigCmd;
 use crate::cmd::consume::ConsumeCmd;
@@ -11,6 +10,10 @@ use crate::cmd::delete::DeleteCmd;
 use crate::cmd::get::GetCmd;
 use crate::cmd::produce::ProduceCmd;
 use crate::{KafkyClient, KafkyError};
+use tokio::sync::oneshot;
+use tokio::sync::oneshot::Receiver;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct RootCmd {}
 
@@ -22,8 +25,7 @@ impl RootCmd {
             .map(|e| e.name.as_str())
             .collect();
         App::new("Kafky")
-            .version("0.1")
-            .author("Igor Maculan <n3wtron@gmail.com>")
+            .version(VERSION)
             .about("Kafka terminal client")
             .arg(
                 Arg::with_name("environment")
@@ -66,16 +68,36 @@ impl RootCmd {
         }
         let environment = String::from(app_matches.value_of("environment").unwrap());
         let credential = Self::extract_credential(&app_matches, config, &environment)?;
-        //TODO remove unnecessary Arc
-        let kafky_client = Arc::new(KafkyClient::new(config, environment, credential));
-        match sub_command_tpl {
-            ("get", Some(matches)) => GetCmd::exec(matches, kafky_client),
-            ("produce", Some(matches)) => ProduceCmd::exec(matches, kafky_client),
-            ("consume", Some(matches)) => ConsumeCmd::exec(matches, kafky_client),
-            ("create", Some(matches)) => CreateCmd::exec(matches, kafky_client).await,
-            ("delete", Some(matches)) => DeleteCmd::exec(matches, kafky_client).await,
+
+        let kafky_client = KafkyClient::new(config, environment, credential);
+        let close_rx = Self::termination_receiver();
+
+        tokio::select! {
+            result = async {match sub_command_tpl {
+            ("get", Some(matches)) => GetCmd::exec(matches, &kafky_client).await,
+            ("produce", Some(matches)) => ProduceCmd::exec(matches, &kafky_client).await,
+            ("consume", Some(matches)) => ConsumeCmd::exec(matches, &kafky_client).await,
+            ("create", Some(matches)) => CreateCmd::exec(matches, &kafky_client).await,
+            ("delete", Some(matches)) => DeleteCmd::exec(matches, &kafky_client).await,
             (_, _) => Err(KafkyError::InvalidCommand()),
+        }} =>{result},
+            _ = close_rx => {
+                println!("Exiting...");
+                Ok(())
+            }
         }
+    }
+
+    fn termination_receiver() -> Receiver<bool> {
+        let (close_tx, close_rx) = oneshot::channel();
+        tokio::spawn(async move {
+            signal::ctrl_c().await.expect("failed to handle ctrl+c");
+
+            close_tx
+                .send(true)
+                .expect("failed to propagate exit signal");
+        });
+        close_rx
     }
 
     fn extract_credential(

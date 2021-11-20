@@ -7,6 +7,8 @@ use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::BaseConsumer;
 use rdkafka::producer::BaseProducer;
 use rdkafka::ClientConfig;
+use std::io::Write;
+use tempfile::NamedTempFile;
 
 use crate::config::{KafkyConfig, KafkyCredentialKind, KafkyPEM};
 use crate::KafkyError;
@@ -18,6 +20,7 @@ pub(crate) struct KafkyClient<'a> {
     producer: Mutex<Option<Arc<BaseProducer>>>,
     util_consumer: Mutex<Option<Arc<BaseConsumer>>>,
     admin_client: Mutex<Option<Arc<AdminClient<DefaultClientContext>>>>,
+    temp_ca_truststore_files: Mutex<Vec<NamedTempFile>>,
 }
 
 impl<'a> KafkyClient<'a> {
@@ -29,6 +32,7 @@ impl<'a> KafkyClient<'a> {
             producer: Mutex::new(None),
             util_consumer: Mutex::new(None),
             admin_client: Mutex::new(None),
+            temp_ca_truststore_files: Mutex::new(Vec::new()),
         }
     }
 
@@ -73,10 +77,10 @@ impl<'a> KafkyClient<'a> {
                             self.environment, self.credential
                         ));
                         let pem = String::from_utf8(decoded_pem).unwrap();
-                        client_config_builder.set("ssl.ca.pem", pem);
+                        self.tmp_ca_location(&mut client_config_builder, &pem);
                     }
                     KafkyPEM::Pem(pem) => {
-                        client_config_builder.set("ssl.ca.pem", pem);
+                        self.tmp_ca_location(&mut client_config_builder, pem);
                     }
                 }
                 match &ssl_cred.certificate {
@@ -125,6 +129,19 @@ impl<'a> KafkyClient<'a> {
             }
         };
         client_config_builder
+    }
+
+    fn tmp_ca_location(&self, client_config_builder: &mut ClientConfig, pem: &str) {
+        let mut temp_ca_files = self.temp_ca_truststore_files.lock();
+        let mut ca_tmp_file = tempfile::Builder::new()
+            .suffix(".pem")
+            .prefix("kafky-")
+            .tempfile()
+            .expect("cannot create temp file");
+        write!(ca_tmp_file, "{}", pem).expect("cannot write temp ca file");
+        debug!("ca tmp file {:?} created", &ca_tmp_file.path());
+        client_config_builder.set("ssl.ca.location", ca_tmp_file.path().to_str().unwrap());
+        temp_ca_files.as_mut().unwrap().push(ca_tmp_file);
     }
 
     pub(super) fn get_producer(&self) -> Result<Arc<BaseProducer>, KafkyError> {

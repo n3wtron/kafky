@@ -1,14 +1,14 @@
 use chrono::{DateTime, TimeZone, Utc};
 use log::{debug, error, info};
-use rdkafka::consumer::{BaseConsumer, Consumer};
+use rdkafka::consumer::{Consumer, StreamConsumer};
 
 use rdkafka::message::FromBytes;
 use rdkafka::{Message, Timestamp};
 use serde::{Serialize, Serializer};
-use std::time::{Duration, Instant};
 use strum::IntoEnumIterator;
 use strum_macros;
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
+use tokio::sync::oneshot::Receiver;
 
 use crate::{KafkyClient, KafkyError};
 
@@ -78,14 +78,14 @@ pub(crate) struct KafkyConsumeProperties<'a> {
 }
 
 impl<'a> KafkyClient<'a> {
-    pub(crate) fn consume<
+    pub(crate) async fn consume<
         K: ?Sized + FromBytes,
         P: ?Sized + FromBytes,
         F: FnMut(Result<KafkyConsumerMessage<K, P>, KafkyError>) -> bool,
     >(
         &self,
-        properties: &'a KafkyConsumeProperties,
-        timeout: Option<Duration>,
+        properties: &'a KafkyConsumeProperties<'a>,
+        stop_rx: Option<Receiver<bool>>,
         mut message_consumer: F,
     ) -> Result<(), KafkyError> {
         let mut consumer_builder = self.config_builder();
@@ -96,70 +96,88 @@ impl<'a> KafkyClient<'a> {
             .set("auto.offset.reset", properties.offset.to_string());
 
         debug!("Consumer properties: {:?}", &consumer_builder);
-        let consumer: BaseConsumer = consumer_builder.create()?;
+        let consumer: StreamConsumer = consumer_builder.create()?;
         consumer
             .subscribe(properties.topics)
             .expect("subscribe error");
         info!("subscription properties {:?}", properties);
-        let start_time = Instant::now();
-        loop {
-            if let Some(timeout) = timeout {
-                let now = Instant::now();
-                if now.duration_since(start_time) > timeout {
-                    break;
+
+        if let Some(stop_rx) = stop_rx {
+            tokio::select! {
+                _ = async {
+                loop{
+                        if !Self::process_message(&consumer, &mut message_consumer).await {
+                            break;
+                        }
+                } }=>{},
+                _ = stop_rx =>{
+                    debug!("Received close signal, stopping consumer");
                 }
             }
-            let opt_kafky_msg = consumer.poll(Duration::from_millis(100));
-            if let Some(kafky_msg) = opt_kafky_msg {
-                match kafky_msg {
-                    Ok(m) => {
-                        let opt_payload: Option<&P> = match m.payload_view::<P>() {
-                            None => None,
-                            Some(Ok(s)) => Some(s),
-                            Some(Err(_)) => {
-                                error!("Error while deserializing message payload");
-                                None
-                            }
-                        };
-
-                        let key: Option<&K> = match m.key_view::<K>() {
-                            None => None,
-                            Some(Ok(s)) => Some(s),
-                            Some(Err(_)) => {
-                                error!("Error while deserializing message key");
-                                None
-                            }
-                        };
-                        if let Some(payload) = opt_payload {
-                            let creation_time = match m.timestamp() {
-                                Timestamp::NotAvailable => None,
-                                Timestamp::CreateTime(creation_time) => {
-                                    Some(Utc.timestamp_millis(creation_time))
-                                }
-                                Timestamp::LogAppendTime(log_appended_msec) => {
-                                    Some(Utc.timestamp_millis(log_appended_msec))
-                                }
-                            };
-
-                            if !message_consumer(Ok(KafkyConsumerMessage {
-                                key,
-                                payload,
-                                topic: m.topic(),
-                                partition: m.partition(),
-                                offset: m.offset(),
-                                timestamp: creation_time,
-                            })) {
-                                break;
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        error!("Error consuming messages:{}", err);
-                        break;
-                    }
-                };
+        } else {
+            loop {
+                Self::process_message(&consumer, &mut message_consumer).await;
             }
         }
+
         Ok(())
+    }
+
+    async fn process_message<
+        K: ?Sized + FromBytes,
+        P: ?Sized + FromBytes,
+        F: FnMut(Result<KafkyConsumerMessage<K, P>, KafkyError>) -> bool,
+    >(
+        consumer: &StreamConsumer,
+        mut message_consumer: F,
+    ) -> bool {
+        let kafky_msg = consumer.recv().await;
+        match kafky_msg {
+            Ok(m) => {
+                let opt_payload: Option<&P> = match m.payload_view::<P>() {
+                    None => None,
+                    Some(Ok(s)) => Some(s),
+                    Some(Err(_)) => {
+                        error!("Error while deserializing message payload");
+                        None
+                    }
+                };
+
+                let key: Option<&K> = match m.key_view::<K>() {
+                    None => None,
+                    Some(Ok(s)) => Some(s),
+                    Some(Err(_)) => {
+                        error!("Error while deserializing message key");
+                        None
+                    }
+                };
+                if let Some(payload) = opt_payload {
+                    let creation_time = match m.timestamp() {
+                        Timestamp::NotAvailable => None,
+                        Timestamp::CreateTime(creation_time) => {
+                            Some(Utc.timestamp_millis(creation_time))
+                        }
+                        Timestamp::LogAppendTime(log_appended_msec) => {
+                            Some(Utc.timestamp_millis(log_appended_msec))
+                        }
+                    };
+
+                    message_consumer(Ok(KafkyConsumerMessage {
+                        key,
+                        payload,
+                        topic: m.topic(),
+                        partition: m.partition(),
+                        offset: m.offset(),
+                        timestamp: creation_time,
+                    }))
+                } else {
+                    true
+                }
+            }
+            Err(err) => {
+                error!("Error consuming messages:{}", err);
+                false
+            }
+        }
     }
 }

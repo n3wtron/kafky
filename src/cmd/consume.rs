@@ -1,11 +1,12 @@
-use crate::client::consumer::{KafkyConsumeProperties, KafkyConsumerOffset};
-use crate::client::kafky_client::KafkyClient;
-use crate::errors::KafkyError;
+use std::str::FromStr;
+
 use clap::{App, Arg, ArgMatches, SubCommand};
 use gethostname::gethostname;
 use log::error;
-use std::str::FromStr;
-use std::sync::Arc;
+
+use crate::client::consumer::{KafkyConsumeProperties, KafkyConsumerOffset};
+use crate::client::kafky_client::KafkyClient;
+use crate::errors::KafkyError;
 
 pub(crate) struct ConsumeCmd {}
 
@@ -64,60 +65,62 @@ impl ConsumeCmd {
             )
     }
 
-    pub fn exec(
-        app_matches: &ArgMatches<'_>,
-        kafky_client: Arc<KafkyClient>,
+    pub async fn exec<'a>(
+        app_matches: &'a ArgMatches<'a>,
+        kafky_client: &'a KafkyClient<'a>,
     ) -> Result<(), KafkyError> {
         let format: &str = app_matches.value_of("format").unwrap();
         let topics: Vec<&str> = app_matches.values_of("topic").unwrap().collect();
-        kafky_client.consume::<str, str, _>(
-            &KafkyConsumeProperties {
-                topics: &topics,
-                consumer_group: app_matches.value_of("consumer-group").unwrap(),
-                offset: Self::extract_offset_from_arg(app_matches)?,
-                auto_commit: app_matches.is_present("autocommit"),
-            },
-            None,
-            |msg_result| match msg_result {
-                Ok(msg) => match format {
-                    "json" => {
-                        println!("{}", serde_json::to_string(&msg).unwrap());
-                        true
-                    }
-                    "text" => {
-                        let mut row = String::new();
-                        if topics.len() > 1 {
-                            row.push_str(msg.topic());
-                            row.push_str(" -> ");
+        kafky_client
+            .consume::<str, str, _>(
+                &KafkyConsumeProperties {
+                    topics: &topics,
+                    consumer_group: app_matches.value_of("consumer-group").unwrap(),
+                    offset: Self::extract_offset_from_arg(app_matches)?,
+                    auto_commit: app_matches.is_present("autocommit"),
+                },
+                None,
+                |msg_result| match msg_result {
+                    Ok(msg) => match format {
+                        "json" => {
+                            println!("{}", serde_json::to_string(&msg).unwrap());
+                            true
                         }
-                        if app_matches.is_present("timestamp") {
-                            row.push('[');
-                            row.push_str(
-                                &msg.timestamp()
-                                    .map(|t| t.to_rfc3339())
-                                    .unwrap_or_else(|| String::from("NO-TS")),
-                            );
-                            row.push_str("] ");
+                        "text" => {
+                            let mut row = String::new();
+                            if topics.len() > 1 {
+                                row.push_str(msg.topic());
+                                row.push_str(" -> ");
+                            }
+                            if app_matches.is_present("timestamp") {
+                                row.push('[');
+                                row.push_str(
+                                    &msg.timestamp()
+                                        .map(|t| t.to_rfc3339())
+                                        .unwrap_or_else(|| String::from("NO-TS")),
+                                );
+                                row.push_str("] ");
+                            }
+                            if app_matches.is_present("key-separator") {
+                                row.push_str(msg.key().unwrap_or("null"));
+                                row.push_str(app_matches.value_of("key-separator").unwrap());
+                            }
+                            row.push_str(msg.payload());
+                            println!("{}", row);
+                            true
                         }
-                        if app_matches.is_present("key-separator") {
-                            row.push_str(msg.key().unwrap_or("null"));
-                            row.push_str(app_matches.value_of("key-separator").unwrap());
+                        _ => {
+                            error!("invalid format");
+                            false
                         }
-                        row.push_str(msg.payload());
-                        println!("{}", row);
-                        true
-                    }
-                    _ => {
-                        error!("invalid format");
+                    },
+                    Err(err) => {
+                        error!("error: {:?}", err);
                         false
                     }
                 },
-                Err(err) => {
-                    error!("error: {:?}", err);
-                    false
-                }
-            },
-        )
+            )
+            .await
     }
 
     fn extract_offset_from_arg(

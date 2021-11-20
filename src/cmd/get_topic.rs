@@ -1,5 +1,4 @@
 use std::io::{stdout, Write};
-use std::sync::Arc;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -24,7 +23,7 @@ impl GetTopicCmd {
 
     pub(crate) fn exec(
         topic_args: &ArgMatches,
-        kafky_client: Arc<KafkyClient>,
+        kafky_client: &KafkyClient,
     ) -> Result<(), KafkyError> {
         let format = topic_args.value_of("format").unwrap();
         if format == "text" {

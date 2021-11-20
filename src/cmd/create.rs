@@ -1,6 +1,5 @@
 use crate::{KafkyClient, KafkyError};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use std::sync::Arc;
 
 pub struct CreateCmd {}
 
@@ -42,7 +41,7 @@ impl CreateCmd {
 
     pub(super) async fn exec<'a>(
         arg_matches: &'a ArgMatches<'a>,
-        kafky_client: Arc<KafkyClient<'a>>,
+        kafky_client: &'a KafkyClient<'a>,
     ) -> Result<(), KafkyError> {
         if let Some(create_topic_args) = arg_matches.subcommand_matches("topics") {
             let topic_names: Vec<&str> = create_topic_args.values_of("topic").unwrap().collect();

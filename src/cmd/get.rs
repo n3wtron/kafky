@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use clap::{App, ArgMatches, SubCommand};
 
 use crate::client::kafky_client::KafkyClient;
@@ -17,15 +15,15 @@ impl GetCmd {
             .subcommand(GetConsumerGroupsCmd::command())
     }
 
-    pub fn exec(
-        app_matches: &ArgMatches,
-        kafky_client: Arc<KafkyClient>,
+    pub async fn exec<'a>(
+        app_matches: &'a ArgMatches<'a>,
+        kafky_client: &'a KafkyClient<'a>,
     ) -> Result<(), KafkyError> {
         if let Some(get_topic_args) = app_matches.subcommand_matches("topics") {
             return GetTopicCmd::exec(get_topic_args, kafky_client);
         }
         if let Some(get_consumer_groups_args) = app_matches.subcommand_matches("consumer-groups") {
-            return GetConsumerGroupsCmd::exec(get_consumer_groups_args, kafky_client);
+            return GetConsumerGroupsCmd::exec(get_consumer_groups_args, kafky_client).await;
         }
         Self::command()
             .print_help()
