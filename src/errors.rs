@@ -1,5 +1,6 @@
 use config::ConfigError;
 use rdkafka::error::KafkaError;
+use rustyline::error::ReadlineError;
 use std::io;
 use std::str;
 use thiserror::Error;
@@ -32,6 +33,12 @@ pub enum KafkyError {
     TopicNotFound(String),
     #[error("Invalid json: {0}")]
     InvalidJson(String),
+    #[error("Exit")]
+    Exit(),
+    #[error("Readline error:{0}")]
+    Readline(String),
+    #[error("Key separator not found")]
+    KeySeparatorNotFound(),
 }
 
 impl From<KafkaError> for KafkyError {
@@ -61,5 +68,11 @@ impl From<io::Error> for KafkyError {
 impl From<str::Utf8Error> for KafkyError {
     fn from(err: str::Utf8Error) -> KafkyError {
         KafkyError::ParseError(err.to_string())
+    }
+}
+
+impl From<ReadlineError> for KafkyError {
+    fn from(e: ReadlineError) -> Self {
+        KafkyError::Readline(e.to_string())
     }
 }

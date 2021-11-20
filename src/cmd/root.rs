@@ -69,18 +69,32 @@ impl RootCmd {
         let environment = String::from(app_matches.value_of("environment").unwrap());
         let credential = Self::extract_credential(&app_matches, config, &environment)?;
 
-        let kafky_client = KafkyClient::new(config, environment, credential);
+        let kafky_client = KafkyClient::new(config, &environment, &credential);
         let close_rx = Self::termination_receiver();
 
         tokio::select! {
-            result = async {match sub_command_tpl {
-            ("get", Some(matches)) => GetCmd::exec(matches, &kafky_client).await,
-            ("produce", Some(matches)) => ProduceCmd::exec(matches, &kafky_client).await,
-            ("consume", Some(matches)) => ConsumeCmd::exec(matches, &kafky_client).await,
-            ("create", Some(matches)) => CreateCmd::exec(matches, &kafky_client).await,
-            ("delete", Some(matches)) => DeleteCmd::exec(matches, &kafky_client).await,
-            (_, _) => Err(KafkyError::InvalidCommand()),
-        }} =>{result},
+            result = async {
+                let res:Result<(),KafkyError> = match sub_command_tpl {
+                    ("get", Some(matches)) => GetCmd::exec(matches, &kafky_client).await,
+                    ("produce", Some(matches)) => ProduceCmd::exec(matches, &kafky_client,config,&environment).await,
+                    ("consume", Some(matches)) => ConsumeCmd::exec(matches, &kafky_client).await,
+                    ("create", Some(matches)) => CreateCmd::exec(matches, &kafky_client).await,
+                    ("delete", Some(matches)) => DeleteCmd::exec(matches, &kafky_client).await,
+                    (_, _) => Err(KafkyError::InvalidCommand()),
+                };
+                res
+            } =>{
+                if let Err(e) = result{
+                     match e {
+                        KafkyError::Exit()=>{
+                            Ok(())
+                        }
+                        _ =>{Err(e)}
+                    }
+                } else {
+                    Ok(())
+                }
+            },
             _ = close_rx => {
                 println!("Exiting...");
                 Ok(())
@@ -92,7 +106,6 @@ impl RootCmd {
         let (close_tx, close_rx) = oneshot::channel();
         tokio::spawn(async move {
             signal::ctrl_c().await.expect("failed to handle ctrl+c");
-
             close_tx
                 .send(true)
                 .expect("failed to propagate exit signal");

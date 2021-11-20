@@ -1,5 +1,6 @@
 use log::debug;
-use rdkafka::producer::BaseRecord;
+use rdkafka::producer::{BaseRecord, Producer};
+use std::time::Duration;
 
 use crate::{KafkyClient, KafkyError};
 
@@ -19,9 +20,11 @@ impl<'a> KafkyClient<'a> {
             record = record.key(key.as_ref().unwrap());
         }
         record = record.payload(&payload);
-        match self.get_producer()?.send(record) {
+        let producer = self.get_producer()?;
+        match producer.send(record) {
             Ok(_) => {
                 debug!("Message sent");
+                producer.flush(Duration::from_millis(1000));
                 Ok(())
             }
             Err(err) => Err(err.0.into()),

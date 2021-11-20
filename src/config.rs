@@ -114,6 +114,12 @@ impl<'a> KafkyConfig<'a> {
         self.path
     }
 
+    pub fn config_folder(&self) -> &'a Path {
+        self.path
+            .parent()
+            .expect("error getting parent config path")
+    }
+
     fn create_sample(config_file_path: &Path) -> Result<(), KafkyError> {
         let env = KafkyEnvironment {
             name: "sample-env".to_string(),

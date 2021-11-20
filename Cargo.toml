@@ -1,6 +1,6 @@
 [package]
 name = "kafky"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["n3wtron@gmail.com"]
 
@@ -26,6 +26,7 @@ byteorder = "1.4.3"
 tabwriter = "1.2.1"
 chrono = "0.4.19"
 tempfile = "3.2.0"
+rustyline = "9.0.0"
 
 [dev-dependencies.cargo-husky]
 version = "1"

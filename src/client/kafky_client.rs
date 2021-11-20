@@ -15,8 +15,8 @@ use crate::KafkyError;
 
 pub(crate) struct KafkyClient<'a> {
     kafky_config: &'a KafkyConfig<'a>,
-    environment: String,
-    credential: String,
+    environment: &'a str,
+    credential: &'a str,
     producer: Mutex<Option<Arc<BaseProducer>>>,
     util_consumer: Mutex<Option<Arc<BaseConsumer>>>,
     admin_client: Mutex<Option<Arc<AdminClient<DefaultClientContext>>>>,
@@ -24,7 +24,7 @@ pub(crate) struct KafkyClient<'a> {
 }
 
 impl<'a> KafkyClient<'a> {
-    pub fn new(config: &'a KafkyConfig, environment: String, credential: String) -> Self {
+    pub fn new(config: &'a KafkyConfig, environment: &'a str, credential: &'a str) -> Self {
         KafkyClient {
             kafky_config: config,
             environment,
@@ -39,7 +39,7 @@ impl<'a> KafkyClient<'a> {
     pub(super) fn config_builder(&self) -> ClientConfig {
         let environment = self
             .kafky_config
-            .get_environment(&self.environment)
+            .get_environment(self.environment)
             .ok_or_else(|| {
                 KafkyError::EnvironmentNotFound(
                     self.environment.to_string(),
@@ -48,7 +48,7 @@ impl<'a> KafkyClient<'a> {
             })
             .unwrap();
         let credential = environment
-            .get_credential(&self.credential)
+            .get_credential(self.credential)
             .ok_or_else(|| {
                 KafkyError::CredentialNotFound(
                     self.credential.to_string(),
