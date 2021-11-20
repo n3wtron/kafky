@@ -16,6 +16,7 @@ Kafka Terminal Client entirely written in RUST.
     - [x] json format
     - [x] key / value
 - [x] produce messages
+  - [x] message history / search
 - [ ] brew installation
 
 ## Installation
