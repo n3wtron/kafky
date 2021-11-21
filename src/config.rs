@@ -192,3 +192,33 @@ impl<'a> KafkyConfig<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use indoc::indoc;
+    #[test]
+    fn parse_test() -> Result<(), KafkyError> {
+        let mut tmp_cfg = tempfile::Builder::new().suffix(".yml").tempfile().unwrap();
+        let yml_cfg = indoc! {"
+environments:
+  - name: test
+    brokers:
+      - localhost:9094
+    credentials:
+      - name: cred
+        ssl:
+          truststore:
+            path: ./caroot.cer
+          certificate:
+            path: ./producer.cer
+          privateKey:
+            path: /producer.pkcs8
+            password: priv-key-password
+        "};
+        write!(tmp_cfg, "{}", yml_cfg).expect("error writing yml");
+        let cfg = KafkyConfig::load(tmp_cfg.path())?;
+        assert_eq!(cfg.environments.len(), 1);
+        Ok(())
+    }
+}
