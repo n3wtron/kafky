@@ -5,7 +5,7 @@ use crate::cmd::get_consumer_groups::GetConsumerGroupsCmd;
 use crate::cmd::get_topic::GetTopicCmd;
 use crate::errors::KafkyError;
 
-pub(crate) struct GetCmd {}
+pub struct GetCmd {}
 
 impl GetCmd {
     pub fn command<'a>() -> App<'a, 'a> {

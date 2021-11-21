@@ -8,7 +8,7 @@ use crate::{KafkyClient, KafkyError};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-pub(crate) struct KafkyPartition {
+pub struct KafkyPartition {
     id: i32,
     leader: i32,
     replicas: Vec<i32>,
@@ -42,7 +42,7 @@ impl From<&MetadataPartition> for KafkyPartition {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct KafkyTopic {
+pub struct KafkyTopic {
     name: String,
     partitions: Vec<KafkyPartition>,
 }
@@ -70,7 +70,7 @@ impl From<&MetadataTopic> for KafkyTopic {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct KafkyMetadata {
+pub struct KafkyMetadata {
     pub topics: Vec<KafkyTopic>,
     pub brokers: Vec<String>,
 }

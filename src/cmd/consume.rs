@@ -8,7 +8,7 @@ use crate::client::consumer::{KafkyConsumeProperties, KafkyConsumerOffset};
 use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 
-pub(crate) struct ConsumeCmd {}
+pub struct ConsumeCmd {}
 
 impl ConsumeCmd {
     pub fn command<'a>() -> App<'a, 'a> {

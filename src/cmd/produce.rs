@@ -12,7 +12,7 @@ use crate::client::kafky_client::KafkyClient;
 use crate::errors::KafkyError;
 use crate::KafkyConfig;
 
-pub(crate) struct ProduceCmd {}
+pub struct ProduceCmd {}
 
 impl ProduceCmd {
     pub fn command<'a>() -> App<'a, 'a> {

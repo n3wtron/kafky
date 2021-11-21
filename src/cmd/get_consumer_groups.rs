@@ -18,7 +18,7 @@ struct ConsumerGroupRow<'a> {
     lag: i64,
 }
 
-pub(crate) struct GetConsumerGroupsCmd {}
+pub struct GetConsumerGroupsCmd {}
 
 impl GetConsumerGroupsCmd {
     pub fn command<'a>() -> App<'a, 'a> {

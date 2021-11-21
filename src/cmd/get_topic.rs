@@ -21,10 +21,7 @@ impl GetTopicCmd {
             .about("retrieve kafka topic names")
     }
 
-    pub(crate) fn exec(
-        topic_args: &ArgMatches,
-        kafky_client: &KafkyClient,
-    ) -> Result<(), KafkyError> {
+    pub fn exec(topic_args: &ArgMatches, kafky_client: &KafkyClient) -> Result<(), KafkyError> {
         let format = topic_args.value_of("format").unwrap();
         if format == "text" {
             for topic in kafky_client.get_metadata(None)?.topics {

@@ -23,7 +23,7 @@ where
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct KafkyConsumerMessage<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> {
+pub struct KafkyConsumerMessage<'a, K: ?Sized + FromBytes, P: ?Sized + FromBytes> {
     key: Option<&'a K>,
     topic: &'a str,
     payload: &'a P,
@@ -70,7 +70,7 @@ impl<'a> KafkyConsumerOffset {
 }
 
 #[derive(Debug)]
-pub(crate) struct KafkyConsumeProperties<'a> {
+pub struct KafkyConsumeProperties<'a> {
     pub topics: &'a Vec<&'a str>,
     pub consumer_group: &'a str,
     pub offset: KafkyConsumerOffset,
@@ -78,7 +78,7 @@ pub(crate) struct KafkyConsumeProperties<'a> {
 }
 
 impl<'a> KafkyClient<'a> {
-    pub(crate) async fn consume<
+    pub async fn consume<
         K: ?Sized + FromBytes,
         P: ?Sized + FromBytes,
         F: FnMut(Result<KafkyConsumerMessage<K, P>, KafkyError>) -> bool,

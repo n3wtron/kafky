@@ -13,7 +13,7 @@ use tempfile::NamedTempFile;
 use crate::config::{KafkyConfig, KafkyCredentialKind, KafkyPEM};
 use crate::KafkyError;
 
-pub(crate) struct KafkyClient<'a> {
+pub struct KafkyClient<'a> {
     kafky_config: &'a KafkyConfig<'a>,
     environment: &'a str,
     credential: &'a str,
