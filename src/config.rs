@@ -27,7 +27,6 @@ pub enum KafkyPEM {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KafkySSLCredential {
-    pub truststore: KafkyPEM,
     pub certificate: KafkyPEM,
     #[serde(rename = "privateKey")]
     pub private_key: KafkyPrivateKey,
@@ -58,6 +57,7 @@ pub struct KafkyEnvironment {
     pub name: String,
     pub brokers: Vec<String>,
     pub credentials: Vec<KafkyCredential>,
+    pub truststore: Option<KafkyPEM>,
 }
 
 impl KafkyEnvironment {
@@ -124,6 +124,7 @@ impl<'a> KafkyConfig<'a> {
         let env = KafkyEnvironment {
             name: "sample-env".to_string(),
             brokers: vec!["localhost:9094".to_string()],
+            truststore: Some(KafkyPEM::Path("truststore.pem".to_string())),
             credentials: vec![
                 KafkyCredential {
                     name: "plain-cred".to_string(),
@@ -135,17 +136,6 @@ impl<'a> KafkyConfig<'a> {
                 KafkyCredential {
                     name: "ssl-cred".to_string(),
                     credential: KafkyCredentialKind::Ssl(KafkySSLCredential {
-                        truststore: KafkyPEM::Pem(
-                            "-----BEGIN CERTIFICATE-----\
-                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
-                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
-                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
-                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
-                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
-                    -----END CERTIFICATE-----\
-                    "
-                            .to_string(),
-                        ),
                         certificate: KafkyPEM::Path("/my.cert.pem".to_string()),
                         private_key: KafkyPrivateKey {
                             key: KafkyPEM::Base64("bXkgcHJpdmF0ZSBrZXk=".to_string()),
@@ -201,20 +191,20 @@ mod tests {
     fn parse_test() -> Result<(), KafkyError> {
         let mut tmp_cfg = tempfile::Builder::new().suffix(".yml").tempfile().unwrap();
         let yml_cfg = indoc! {"
-environments:
-  - name: test
-    brokers:
-      - localhost:9094
-    credentials:
-      - name: cred
-        ssl:
-          truststore:
-            path: ./caroot.cer
-          certificate:
-            path: ./producer.cer
-          privateKey:
-            path: /producer.pkcs8
-            password: priv-key-password
+            environments:
+              - name: test
+                brokers:
+                  - localhost:9094
+                truststore:
+                  path: ./caroot.cer
+                credentials:
+                  - name: cred
+                    ssl:
+                      certificate:
+                        path: ./producer.cer
+                      privateKey:
+                        path: /producer.pkcs8
+                        password: priv-key-password
         "};
         write!(tmp_cfg, "{}", yml_cfg).expect("error writing yml");
         let cfg = KafkyConfig::load(tmp_cfg.path())?;
