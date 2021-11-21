@@ -106,8 +106,8 @@ impl<'a> KafkyConfig<'a> {
         self.environments.iter().find(|e| e.name.eq(environment))
     }
 
-    pub fn get_environment_names(&self) -> Vec<String> {
-        self.environments.iter().map(|e| e.name.clone()).collect()
+    pub fn get_environment_names(&self) -> Vec<&str> {
+        self.environments.iter().map(|e| e.name.as_str()).collect()
     }
 
     pub fn path(&self) -> &'a Path {
