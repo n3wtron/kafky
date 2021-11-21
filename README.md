@@ -41,6 +41,13 @@ environments:
   - name: sample-env
     brokers:
       - "localhost:9094"
+    truststore:
+      #path:
+      #base64:
+      pem: |
+        -----BEGIN CERTIFICATE-----
+        DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
+        -----END CERTIFICATE-----
     credentials:
       - name: plain-cred
         plain:
@@ -48,13 +55,6 @@ environments:
           password: kafka-password
       - name: ssl-cred
         ssl:
-          truststore:
-            #path:
-            #base64:
-            pem: |
-              -----BEGIN CERTIFICATE-----
-              DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl\n                    DQEJARYAMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJ9WRanG/fUvcfKiGl
-              -----END CERTIFICATE-----
           certificate:
             path: /my.cert.pem
             #pem:
