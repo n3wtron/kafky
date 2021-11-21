@@ -64,25 +64,29 @@ impl<'a> KafkyClient<'a> {
         client_config_builder.set_log_level(RDKafkaLogLevel::Debug);
         debug!("{:?}", client_config_builder);
 
+        if let Some(truststore) = &environment.truststore {
+            match truststore {
+                KafkyPEM::Path(path) => {
+                    client_config_builder.set("ssl.ca.location", path);
+                }
+                KafkyPEM::Base64(b64) => {
+                    let decoded_pem = base64::decode(b64).expect(&*format!(
+                        "Invalid truststore base64 for the environment:{} credential:{}",
+                        self.environment, self.credential
+                    ));
+                    let pem = String::from_utf8(decoded_pem).unwrap();
+                    self.tmp_ca_location(&mut client_config_builder, &pem);
+                }
+                KafkyPEM::Pem(pem) => {
+                    self.tmp_ca_location(&mut client_config_builder, pem);
+                }
+            }
+        }
+
         match &credential.credential {
             KafkyCredentialKind::Ssl(ssl_cred) => {
                 client_config_builder.set("security.protocol", "ssl");
-                match &ssl_cred.truststore {
-                    KafkyPEM::Path(path) => {
-                        client_config_builder.set("ssl.ca.location", path);
-                    }
-                    KafkyPEM::Base64(b64) => {
-                        let decoded_pem = base64::decode(b64).expect(&*format!(
-                            "Invalid truststore base64 for the environment:{} credential:{}",
-                            self.environment, self.credential
-                        ));
-                        let pem = String::from_utf8(decoded_pem).unwrap();
-                        self.tmp_ca_location(&mut client_config_builder, &pem);
-                    }
-                    KafkyPEM::Pem(pem) => {
-                        self.tmp_ca_location(&mut client_config_builder, pem);
-                    }
-                }
+
                 match &ssl_cred.certificate {
                     KafkyPEM::Path(path) => {
                         client_config_builder.set("ssl.certificate.location", path);
